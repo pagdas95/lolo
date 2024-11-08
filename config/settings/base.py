@@ -370,9 +370,10 @@ REST_AUTH = {
 CORS_URLS_REGEX = r"^/api/.*$"
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",  # Adjust based on where the frontend is hosted
-    "http://127.0.0.1:3000",
     "https://localhost:3000", 
-    "https://lolo-sable.vercel.app"
+    "http://127.0.0.1:3000",
+    "https://127.0.0.1:3000",
+    "https://lolo-sable.vercel.app",
 ]
 
 CORS_ALLOW_METHODS = [
