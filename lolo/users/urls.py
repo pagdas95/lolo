@@ -11,5 +11,6 @@ urlpatterns = [
     path("~update/", view=user_update_view, name="update"),
     path("<str:username>/", view=user_detail_view, name="detail"),
     
+    
 ]
 
