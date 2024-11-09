@@ -375,6 +375,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://127.0.0.1:3000",
     "https://lolo-sable.vercel.app",
 ]
+CORS_ALLOW_ALL_ORIGINS = True
 
 CORS_ORIGIN_WHITELIST = [
     'http://localhost:3000'
