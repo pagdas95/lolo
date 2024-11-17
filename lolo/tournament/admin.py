@@ -37,16 +37,17 @@ class TournamentAdmin(admin.ModelAdmin):
         'end_time', 
         'participant_count',
         'is_active',
-        'view_participants'
+        'view_participants',
+        'featured',
     ]
     actions = ['select_finalists', 'close_tournament']
     inlines = [ParticipationInline]
-    list_filter = ['category', 'is_final_tournament', ('start_time', admin.DateFieldListFilter)]
+    list_filter = ['category', 'is_final_tournament', 'featured', ('start_time', admin.DateFieldListFilter)]
     search_fields = ['title', 'description']
     readonly_fields = ['created_at', 'updated_at']
     fieldsets = [
         (None, {
-            'fields': ['title', 'description', 'image']
+            'fields': ['title', 'description','rules', 'prizes', 'image', 'featured']
         }),
         ('Category & Settings', {
             'fields': ['category', 'participant_limit', 'finalists_count', 'is_final_tournament']

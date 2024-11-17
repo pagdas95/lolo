@@ -51,6 +51,12 @@ class Tournament(models.Model):
         on_delete=models.CASCADE,
         related_name='tournaments'
     )
+
+    featured = models.BooleanField(
+        default=False,
+        help_text="Featured tournaments will be highlighted"
+    )
+    
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
     participant_limit = models.PositiveIntegerField(
@@ -79,6 +85,7 @@ class Tournament(models.Model):
         related_name='created_tournaments'
     )
     views_count = models.PositiveIntegerField(default=0)
+
 
     def __str__(self):
         return self.title

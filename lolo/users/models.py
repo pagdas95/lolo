@@ -23,6 +23,12 @@ class User(AbstractUser):
         blank=True, 
         null=True
     )
+    
+    first_time_login = models.BooleanField(
+        _("First Time Login"),
+        default=True,  # Everyone starts with True (they're new!)
+        help_text=_("Indicates if this is the user's first time logging in")
+    )    
     def get_absolute_url(self) -> str:
         """Get URL for user's detail view.
 

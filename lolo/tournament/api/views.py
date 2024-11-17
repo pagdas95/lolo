@@ -15,20 +15,29 @@ from .serializers import (
 )
 from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly
 from .pagination import CustomPagination, VideosPagination
-from django.db.models import Count, F
+from django.db.models import Count, F, Q
 from rest_framework import filters
 from django_filters import rest_framework as django_filters
-
+from random import sample
+from django.contrib.auth import get_user_model
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     permission_classes = [IsAdminOrReadOnly]
+    # Remove pagination for this viewset
+    pagination_class = None
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
 class TournamentFilter(django_filters.FilterSet):
     category = django_filters.NumberFilter(field_name='category__id')
     is_active = django_filters.BooleanFilter(method='filter_active')
+    featured = django_filters.BooleanFilter(field_name='featured')
     min_participants = django_filters.NumberFilter(
         method='filter_by_participants',
         label='Minimum participants'
@@ -40,13 +49,14 @@ class TournamentFilter(django_filters.FilterSet):
             ('most_votes', 'Most Votes'),
             ('newest', 'Newest'),
             ('oldest', 'Oldest'),
+            ('featured', 'Featured First'),
         ),
         method='sort_tournaments'
     )
 
     class Meta:
         model = Tournament
-        fields = ['category', 'is_final_tournament', 'is_active']
+        fields = ['category', 'is_final_tournament', 'is_active', 'featured']
 
     def filter_active(self, queryset, name, value):
         now = timezone.now()
@@ -74,6 +84,9 @@ class TournamentFilter(django_filters.FilterSet):
             return queryset.order_by('-created_at')
         elif value == 'oldest':
             return queryset.order_by('created_at')
+        elif value == 'featured':
+            return queryset.order_by('-featured', '-created_at')
+        
         return queryset
     
 class TournamentViewSet(viewsets.ModelViewSet):
@@ -181,23 +194,36 @@ class TournamentViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def participants(self, request, pk=None):
         """
-        Get paginated list of tournament participants
+        Get paginated list of tournament participants with sorting and search
         """
         tournament = self.get_object()
         participations = Participation.objects.filter(
             tournament=tournament
         ).select_related('user', 'video_submission')
         
-        # Sorting
-        sort_by = request.query_params.get('sort', '-created_at')
-        sort_options = {
-            'most_votes': '-votes_received',
-            'most_viewed': '-video_submission__views_count',
-            'newest': '-created_at',
-            'oldest': 'created_at'
-        }
-        sort_field = sort_options.get(sort_by, '-created_at')
-        participations = participations.order_by(sort_field)
+        # Handle sorting
+        sort_by = request.query_params.get('sort')
+        if sort_by:
+            if sort_by == 'most_votes':
+                participations = participations.order_by('-votes_received')
+            elif sort_by == 'most_viewed':
+                participations = participations.order_by('-video_submission__views_count')
+            elif sort_by == 'newest':
+                participations = participations.order_by('-created_at')
+            elif sort_by == 'oldest':
+                participations = participations.order_by('created_at')
+        else:
+            # Default sorting by newest
+            participations = participations.order_by('-created_at')
+
+        # Handle search
+        search = request.query_params.get('search')
+        if search:
+            participations = participations.filter(
+                Q(video_submission__title__icontains=search) |
+                Q(user__username__icontains=search) |
+                Q(video_submission__description__icontains=search)
+            )
 
         # Pagination
         page = self.paginate_queryset(participations)
@@ -293,6 +319,304 @@ class TournamentViewSet(viewsets.ModelViewSet):
 
         serializer = ParticipationSerializer(participations, many=True)
         return Response(serializer.data)
+    
+    @action(detail=False)
+    def closing_soon(self, request):
+        """
+        Get 8 tournaments prioritized as follows:
+        1. Active tournaments closing soon
+        2. Recently ended tournaments
+        3. Any remaining tournaments if needed to fill up to 8
+        """
+        now = timezone.now()
+        limit = 8
+
+        # 1. First, get active tournaments closing soon
+        active_tournaments = list(Tournament.objects.filter(
+            start_time__lte=now,
+            end_time__gt=now
+        ).order_by('end_time')[:limit])
+
+        slots_remaining = limit - len(active_tournaments)
+
+        if slots_remaining > 0:
+            # 2. Get recently ended tournaments
+            ended_tournaments = list(Tournament.objects.filter(
+                end_time__lte=now
+            ).order_by('-end_time')[:slots_remaining])
+            
+            active_tournaments.extend(ended_tournaments)
+            slots_remaining = limit - len(active_tournaments)
+
+            # 3. If still needed, get upcoming tournaments
+            if slots_remaining > 0:
+                upcoming_tournaments = list(Tournament.objects.filter(
+                    start_time__gt=now
+                ).exclude(
+                    id__in=[t.id for t in active_tournaments]
+                ).order_by('start_time')[:slots_remaining])
+                
+                active_tournaments.extend(upcoming_tournaments)
+
+        tournaments_data = []
+        for tournament in active_tournaments:
+            data = TournamentListSerializer(tournament, context={'request': request}).data
+            
+            # Add status information
+            if tournament.start_time > now:
+                data['status'] = 'upcoming'
+                data['time_info'] = self._get_time_until_start(tournament.start_time, now)
+            elif tournament.end_time > now:
+                data['status'] = 'active'
+                data['time_info'] = self._get_time_until_end(tournament.end_time, now)
+            else:
+                data['status'] = 'ended'
+                data['time_info'] = self._get_time_since_end(tournament.end_time, now)
+            
+            # Add participation info
+            data['participation_info'] = self._get_participation_info(tournament)
+            
+            tournaments_data.append(data)
+
+        return Response(tournaments_data)
+
+    def _get_time_until_start(self, start_time, now):
+        """Calculate time until tournament starts"""
+        time_left = start_time - now
+        days = time_left.days
+        hours = time_left.seconds // 3600
+        minutes = (time_left.seconds % 3600) // 60
+        
+        if days > 0:
+            return f"Starts in {days} days"
+        elif hours > 0:
+            return f"Starts in {hours} hours"
+        else:
+            return f"Starts in {minutes} minutes"
+
+    def _get_time_until_end(self, end_time, now):
+        """Calculate time until tournament ends"""
+        time_left = end_time - now
+        days = time_left.days
+        hours = time_left.seconds // 3600
+        minutes = (time_left.seconds % 3600) // 60
+        
+        if days > 0:
+            return f"Ends in {days} days"
+        elif hours > 0:
+            return f"Ends in {hours} hours"
+        else:
+            return f"Ends in {minutes} minutes"
+
+    def _get_time_since_end(self, end_time, now):
+        """Calculate time since tournament ended"""
+        time_passed = now - end_time
+        days = time_passed.days
+        hours = time_passed.seconds // 3600
+        
+        if days > 0:
+            return f"Ended {days} days ago"
+        elif hours > 0:
+            return f"Ended {hours} hours ago"
+        else:
+            minutes = time_passed.seconds // 60
+            return f"Ended {minutes} minutes ago"
+
+    def _get_participation_info(self, tournament):
+        """Get participation information for tournament"""
+        participation_count = tournament.participations.count()
+        return {
+            'total_participants': participation_count,
+            'limit_reached': tournament.participant_limit and participation_count >= tournament.participant_limit,
+            'votes_count': tournament.votes.count()
+        }
+
+    def list(self, request, *args, **kwargs):
+        """Enhanced list view with random participants for each tournament"""
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+
+        if page is not None:
+            tournaments_data = []
+            for tournament in page:
+                # Get random participants for this tournament
+                participants = Participation.objects.filter(
+                    tournament=tournament
+                ).select_related(
+                    'user',
+                    'video_submission'
+                )[:3]  # Limit to 3 participants
+                
+                # Serialize tournament data
+                tournament_data = TournamentListSerializer(tournament).data
+                # Add participants data
+                tournament_data['participants'] = ParticipationSerializer(
+                    participants, 
+                    many=True
+                ).data
+                
+                tournaments_data.append(tournament_data)
+
+            return self.get_paginated_response(tournaments_data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False)
+    def category_view(self, request):
+        """Get tournaments filtered by category with participant details"""
+        category_id = request.query_params.get('category')
+        if not category_id:
+            return Response(
+                {"error": "Category ID is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        queryset = self.filter_queryset(
+            Tournament.objects.filter(category_id=category_id)
+        )
+        return self._get_tournaments_with_participants(queryset)
+
+    def _get_tournaments_with_participants(self, queryset):
+        """Helper method to get tournaments with participant details"""
+        page = self.paginate_queryset(queryset)
+        
+        if page is not None:
+            tournaments_data = []
+            for tournament in page:
+                # Get recent participants
+                participants = Participation.objects.filter(
+                    tournament=tournament
+                ).select_related(
+                    'user',
+                    'video_submission'
+                ).order_by('-votes_received')[:3]
+                
+                tournament_data = TournamentListSerializer(tournament).data
+                tournament_data['participants'] = ParticipationSerializer(
+                    participants, 
+                    many=True
+                ).data
+                
+                tournaments_data.append(tournament_data)
+
+            return self.get_paginated_response(tournaments_data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=True)
+    def video_detail(self, request, pk=None):
+        """Get specific video details from tournament"""
+        tournament = self.get_object()
+        video_id = request.query_params.get('video_id')
+        
+        if not video_id:
+            return Response(
+                {"error": "video_id parameter is required"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            participation = Participation.objects.get(
+                tournament=tournament,
+                video_submission_id=video_id
+            )
+        except Participation.DoesNotExist:
+            return Response(
+                {"error": "Video not found in this tournament"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Increment view count
+        VideoSubmission.objects.filter(id=video_id).update(
+            views_count=F('views_count') + 1
+        )
+        participation.video_submission.refresh_from_db()
+
+        return Response({
+            'tournament': {
+                'id': tournament.id,
+                'title': tournament.title,
+                'category': tournament.category.name,
+            },
+            'video': {
+                'id': participation.video_submission.id,
+                'title': participation.video_submission.title,
+                'description': participation.video_submission.description,
+                'video_file': request.build_absolute_uri(participation.video_submission.video_file.url),
+                'cover_image': request.build_absolute_uri(participation.video_submission.cover_image.url),
+                'duration': participation.video_submission.duration,
+                'views_count': participation.video_submission.views_count,
+                'created_at': participation.video_submission.created_at,
+            },
+            'participant': {
+                'username': participation.user.username,
+                'avatar': request.build_absolute_uri(participation.user.avatar.url) if participation.user.avatar else None,
+                'votes_received': participation.votes_received,
+                'is_finalist': participation.is_finalist
+            }
+        })    
+
+    @action(detail=False)
+    def my_voted_videos(self, request):
+        """Get videos the current user has voted for"""
+        if not request.user.is_authenticated:
+            return Response(
+                {"error": "Authentication required"}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        votes = Vote.objects.filter(
+            voter=request.user
+        ).select_related(
+            'participation__video_submission',
+            'participation__user',
+            'tournament'
+        ).order_by('-created_at')
+
+        # Handle sorting
+        sort_by = request.query_params.get('sort')
+        if sort_by:
+            if sort_by == 'most_votes':
+                votes = votes.order_by('-participation__votes_received')
+            elif sort_by == 'most_viewed':
+                votes = votes.order_by('-participation__video_submission__views_count')
+            elif sort_by == 'oldest':
+                votes = votes.order_by('created_at')
+
+        # Pagination
+        page = self.paginate_queryset(votes)
+        if page is not None:
+            return self.get_paginated_response({
+                'voting_stats': {
+                    'total_votes_cast': votes.count(),
+                    'tournaments_voted_in': votes.values('tournament').distinct().count()
+                },
+                'voted_videos': [{
+                    'voted_at': vote.created_at,
+                    'tournament': {
+                        'id': vote.tournament.id,
+                        'title': vote.tournament.title
+                    },
+                    'video': {
+                        'id': vote.participation.video_submission.id,
+                        'title': vote.participation.video_submission.title,
+                        'description': vote.participation.video_submission.description,
+                        'cover_image': request.build_absolute_uri(
+                            vote.participation.video_submission.cover_image.url
+                        ),
+                        'views_count': vote.participation.video_submission.views_count,
+                        'votes_received': vote.participation.votes_received,
+                    },
+                    'participant': {
+                        'username': vote.participation.user.username,
+                        'avatar': request.build_absolute_uri(
+                            vote.participation.user.avatar.url
+                        ) if vote.participation.user.avatar else None
+                    }
+                } for vote in page]
+            })
         
 class VideoSubmissionViewSet(viewsets.ModelViewSet):
     queryset = VideoSubmission.objects.all()
@@ -308,3 +632,92 @@ class ParticipationViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         return Participation.objects.filter(tournament_id=self.kwargs['tournament_pk'])
+    
+
+User = get_user_model()
+
+class UserTournamentProfileViewSet(viewsets.GenericViewSet):
+    permission_classes = [permissions.AllowAny]
+    pagination_class = CustomPagination
+
+    @action(detail=False)
+    def my_profile(self, request):
+        """Get current user's profile and participations"""
+        if not request.user.is_authenticated:
+            return Response(
+                {"error": "Authentication required"}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        return self._get_user_profile(request.user)
+
+    @action(detail=False, methods=['get'], url_path='user/(?P<username>[^/.]+)')
+    def user_profile(self, request, username=None):
+        """Get public profile for any user"""
+        try:
+            user = User.objects.get(username=username)
+            return self._get_user_profile(user)
+        except User.DoesNotExist:
+            return Response(
+                {"error": "User not found"}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+    def _get_user_profile(self, user):
+        """Helper method to get user profile data"""
+        participations = Participation.objects.filter(
+            user=user
+        ).select_related(
+            'tournament',
+            'tournament__category',
+            'video_submission'
+        )
+
+        # Handle sorting
+        sort_by = self.request.query_params.get('sort', 'newest')
+        if sort_by == 'most_votes':
+            participations = participations.order_by('-votes_received')
+        elif sort_by == 'most_viewed':
+            participations = participations.order_by('-video_submission__views_count')
+        elif sort_by == 'oldest':
+            participations = participations.order_by('created_at')
+        else:  # newest
+            participations = participations.order_by('-created_at')
+
+        # Calculate user stats
+        total_votes = sum(p.votes_received for p in participations)
+        finalist_count = participations.filter(is_finalist=True).count()
+        total_views = sum(p.video_submission.views_count for p in participations)
+
+        # Prepare data for response
+        user_data = {
+            'user_info': {
+                'username': user.username,
+                'name': getattr(user, 'name', ''),
+                'avatar': self.request.build_absolute_uri(user.avatar.url) if getattr(user, 'avatar', None) else None,
+                'bio': getattr(user, 'bio', '')
+            },
+            'stats': {
+                'total_participations': participations.count(),
+                'total_votes_received': total_votes,
+                'total_views': total_views,
+                'finalist_count': finalist_count,
+                'tournaments_won': participations.filter(
+                    is_finalist=True
+                ).count()
+            }
+        }
+
+        # Handle pagination for participations
+        page = self.paginate_queryset(participations)
+        if page is not None:
+            participation_serializer = ParticipationSerializer(page, many=True)
+            return self.get_paginated_response({
+                **user_data,
+                'participations': participation_serializer.data
+            })
+
+        participation_serializer = ParticipationSerializer(participations, many=True)
+        return Response({
+            **user_data,
+            'participations': participation_serializer.data
+        })

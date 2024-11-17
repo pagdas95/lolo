@@ -88,6 +88,7 @@ urlpatterns += [
         name='rest_password_change'
     ),
     
+    
     # Email verification resend
     path(
         'api/auth/registration/resend-email/',

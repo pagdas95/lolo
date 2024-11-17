@@ -6,7 +6,7 @@ from lolo.users.models import User
 class UserSerializer(serializers.ModelSerializer[User]):
     class Meta:
         model = User
-        fields = ["username", "name", "url", "tickets", "bio", "avatar",]
+        fields = ["username", "name", "url", "tickets", "bio", "avatar","first_time_login",]
         read_only_fields = ('email',)
         extra_kwargs = {
             "url": {"view_name": "api:user-detail", "lookup_field": "username"},
@@ -16,4 +16,4 @@ class UserSerializer(serializers.ModelSerializer[User]):
 class UserProfileUpdateSerializer(serializers.ModelSerializer[User]):
     class Meta:
         model = User
-        fields = ["name", "bio", "avatar"]
+        fields = ["name", "bio", "avatar","first_time_login"]

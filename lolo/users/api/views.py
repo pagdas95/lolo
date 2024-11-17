@@ -11,6 +11,7 @@ from rest_framework.decorators import api_view
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.utils.translation import gettext_lazy as _
 from lolo.users.models import User
+from allauth.account.models import EmailAddress
 
 from .serializers import UserSerializer, UserProfileUpdateSerializer
 
@@ -27,8 +28,43 @@ class UserViewSet(RetrieveModelMixin, ListModelMixin, UpdateModelMixin, GenericV
 
     @action(detail=False)
     def me(self, request):
-        serializer = UserSerializer(request.user, context={"request": request})
-        return Response(status=status.HTTP_200_OK, data=serializer.data)
+        """
+        This endpoint shows the current user's information,
+        including email verification status
+        """
+        user = request.user
+        serializer = UserSerializer(user, context={"request": request})
+        
+        # Get email verification status from allauth
+        email_status = EmailAddress.objects.filter(user=user).first()
+        
+        # Combine user data with email status
+        data = serializer.data
+        data['email_verification'] = {
+            'email': user.email,
+            'verified': email_status.verified if email_status else False,
+            'primary': email_status.primary if email_status else False,
+        }
+        
+        return Response(data)
+
+    @action(detail=False)
+    def email_status(self, request):
+        """
+        A dedicated endpoint just for checking email status
+        Like looking at just the "verified" checkmark
+        """
+        user = request.user
+        email_status = EmailAddress.objects.filter(user=user).first()
+        
+        return Response({
+            'email': user.email,
+            'verified': email_status.verified if email_status else False,
+            'primary': email_status.primary if email_status else False
+        })
+    
+    
+
 
     @action(detail=False, methods=['patch'])
     def update_profile(self, request):

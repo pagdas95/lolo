@@ -11,6 +11,10 @@ class TournamentListSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True)
     participant_count = serializers.SerializerMethodField()
     is_active = serializers.BooleanField(read_only=True)
+    status = serializers.CharField(read_only=True, required=False)
+    time_info = serializers.CharField(read_only=True, required=False)
+    participation_info = serializers.DictField(read_only=True, required=False)
+
 
     class Meta:
         model = Tournament
@@ -25,7 +29,10 @@ class TournamentListSerializer(serializers.ModelSerializer):
             'is_active', 
             'entry_fee', 
             'prizes',  # Now a text field
-            'rules'    # Added rules to list view
+            'rules',    # Added rules to list view
+            'status',
+            'time_info',
+            'participation_info'
         ]
 
     def get_participant_count(self, obj):
@@ -53,6 +60,7 @@ class TournamentDetailSerializer(serializers.ModelSerializer):
             'entry_fee',
             'is_final_tournament',
             'is_active',
+            'featured',
             'created_at',
             'updated_at',
             'created_by'
