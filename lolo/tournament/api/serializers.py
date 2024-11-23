@@ -9,6 +9,7 @@ class CategorySerializer(serializers.ModelSerializer):
 
 class TournamentListSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True)
+    category_id = serializers.IntegerField(source='category.id', read_only=True) 
     participant_count = serializers.SerializerMethodField()
     is_active = serializers.BooleanField(read_only=True)
     status = serializers.CharField(read_only=True, required=False)
@@ -23,6 +24,7 @@ class TournamentListSerializer(serializers.ModelSerializer):
             'title', 
             'image', 
             'category_name',
+            'category_id',
             'start_time', 
             'end_time', 
             'participant_count',
@@ -82,14 +84,21 @@ class VideoSubmissionSerializer(serializers.ModelSerializer):
 class ParticipationSerializer(serializers.ModelSerializer):
     video = VideoSubmissionSerializer(source='video_submission')
     user_username = serializers.CharField(source='user.username', read_only=True)
+    user_avatar = serializers.SerializerMethodField()
 
     class Meta:
         model = Participation
         fields = [
-            'id', 'user_username', 'tournament', 'video',
+            'id', 'user_username', 'user_avatar',  'tournament', 'video',
             'votes_received', 'is_finalist', 'created_at'
         ]
         read_only_fields = ['votes_received', 'is_finalist']
+
+    def get_user_avatar(self, obj):
+        request = self.context.get('request')
+        if obj.user.avatar:
+            return request.build_absolute_uri(obj.user.avatar.url) if request else obj.user.avatar.url
+        return None
 
 class VoteSerializer(serializers.ModelSerializer):
     voter_username = serializers.CharField(source='voter.username', read_only=True)

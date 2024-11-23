@@ -35,7 +35,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 class TournamentFilter(django_filters.FilterSet):
-    category = django_filters.NumberFilter(field_name='category', lookup_expr='exact')
+    category = django_filters.CharFilter(method='filter_categories')
     category_name = django_filters.CharFilter(
         field_name='category__name',
         lookup_expr='icontains'
@@ -61,6 +61,18 @@ class TournamentFilter(django_filters.FilterSet):
     class Meta:
         model = Tournament
         fields = ['category', 'category_name', 'is_final_tournament', 'is_active', 'featured']
+
+    def filter_categories(self, queryset, name, value):
+        """Handle multiple category IDs"""
+        if not value:
+            return queryset
+        
+        # Split the comma-separated values and convert to integers
+        category_ids = [int(cat_id) for cat_id in value.split(',') if cat_id.strip().isdigit()]
+        
+        if category_ids:
+            return queryset.filter(category_id__in=category_ids)
+        return queryset
 
     def filter_active(self, queryset, name, value):
         now = timezone.now()
@@ -471,6 +483,7 @@ class TournamentViewSet(viewsets.ModelViewSet):
                 
                 # Serialize tournament data
                 tournament_data = TournamentListSerializer(tournament).data
+                tournament_data['category_id'] = tournament.category.id
                 # Add participants data
                 tournament_data['participants'] = ParticipationSerializer(
                     participants, 
