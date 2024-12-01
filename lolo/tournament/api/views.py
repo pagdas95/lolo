@@ -25,7 +25,9 @@ from django.contrib.auth import get_user_model
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    permission_classes = [IsAdminOrReadOnly]
+    # permission_classes = [IsAdminOrReadOnly]
+    permission_classes = [permissions.IsAuthenticated]
+    
     # Remove pagination for this viewset
     pagination_class = None
 
@@ -108,6 +110,7 @@ class TournamentFilter(django_filters.FilterSet):
         return queryset
     
 class TournamentViewSet(viewsets.ModelViewSet):
+    permission_classes = [permissions.IsAuthenticated]
     queryset = Tournament.objects.all()
     pagination_class = CustomPagination
     filter_backends = [
@@ -123,15 +126,11 @@ class TournamentViewSet(viewsets.ModelViewSet):
         return TournamentDetailSerializer
 
     def get_permissions(self):
-        """
-        Instantiates and returns the list of permissions that this view requires.
-        """
+        """Ensure authentication for all endpoints"""
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             permission_classes = [permissions.IsAdminUser]
-        elif self.action in ['enter_tournament', 'vote']:
-            permission_classes = [permissions.IsAuthenticated]
         else:
-            permission_classes = [permissions.AllowAny]
+            permission_classes = [permissions.IsAuthenticated]
         return [permission() for permission in permission_classes]
 
     def retrieve(self, request, *args, **kwargs):
@@ -672,7 +671,7 @@ class ParticipationViewSet(viewsets.ReadOnlyModelViewSet):
 User = get_user_model()
 
 class UserTournamentProfileViewSet(viewsets.GenericViewSet):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     pagination_class = CustomPagination
 
     @action(detail=False, methods=['get'], url_path='user/(?P<username>[^/.]+)/info')

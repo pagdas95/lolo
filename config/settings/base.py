@@ -90,6 +90,7 @@ THIRD_PARTY_APPS = [
 LOCAL_APPS = [
     "lolo.users",
     "lolo.tournament",
+    "lolo.tickets",
 
     # Your stuff: custom apps go here
 ]
