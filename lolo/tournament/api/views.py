@@ -135,6 +135,7 @@ class TournamentViewSet(viewsets.ModelViewSet):
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
+        
         # Increment views only for non-creator views
         if not request.user.is_authenticated or request.user != instance.created_by:
             Tournament.objects.filter(pk=instance.pk).update(
@@ -160,6 +161,30 @@ class TournamentViewSet(viewsets.ModelViewSet):
             'is_finalist': p.is_finalist,
             'created_at': p.created_at
         } for p in participants]
+
+        # Add voting status
+        vote = Vote.objects.filter(
+            voter=request.user, 
+            tournament=instance
+        ).select_related('participation__video_submission', 'participation__user').first()
+        
+        data['voting_status'] = {
+            'has_voted': bool(vote),
+            'can_vote': not Participation.objects.filter(
+                user=request.user, 
+                tournament=instance
+            ).exists()
+        }
+        
+        if vote:
+            data['voting_status']['vote_details'] = {
+                'voted_for': {
+                    'username': vote.participation.user.username,
+                    'video_title': vote.participation.video_submission.title,
+                    'votes_received': vote.participation.votes_received,
+                },
+                'voted_at': vote.created_at
+            }
 
         return Response(data)
 
@@ -326,6 +351,36 @@ class TournamentViewSet(viewsets.ModelViewSet):
                 "message": "Vote recorded successfully",
                 "participation": ParticipationSerializer(participation).data
             }, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['get'])
+    def vote_status(self, request, pk=None):
+        """Get user's voting status for this tournament"""
+        tournament = self.get_object()
+        user = request.user
+        
+        # Check if user has voted
+        vote = Vote.objects.filter(
+            voter=user, 
+            tournament=tournament
+        ).select_related('participation__video_submission', 'participation__user').first()
+        
+        if vote:
+            return Response({
+                'has_voted': True,
+                'vote_details': {
+                    'voted_for': {
+                        'username': vote.participation.user.username,
+                        'video_title': vote.participation.video_submission.title,
+                        'votes_received': vote.participation.votes_received,
+                    },
+                    'voted_at': vote.created_at
+                }
+            })
+        
+        return Response({
+            'has_voted': False,
+            'can_vote': not Participation.objects.filter(user=user, tournament=tournament).exists()
+        })
 
     @action(detail=True, methods=['get'])
     def standings(self, request, pk=None):
