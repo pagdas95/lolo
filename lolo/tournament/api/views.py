@@ -181,6 +181,7 @@ class TournamentViewSet(viewsets.ModelViewSet):
                 'voted_for': {
                     'username': vote.participation.user.username,
                     'video_title': vote.participation.video_submission.title,
+                    'video_id': vote.participation.video_submission.id, 
                     'votes_received': vote.participation.votes_received,
                 },
                 'voted_at': vote.created_at
@@ -371,6 +372,7 @@ class TournamentViewSet(viewsets.ModelViewSet):
                     'voted_for': {
                         'username': vote.participation.user.username,
                         'video_title': vote.participation.video_submission.title,
+                        'video_id': vote.participation.video_submission.id, 
                         'votes_received': vote.participation.votes_received,
                     },
                     'voted_at': vote.created_at
