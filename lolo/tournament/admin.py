@@ -2,7 +2,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
-from .models import Category, Tournament, VideoSubmission, Participation, Vote
+from .models import Category, Tournament, VideoSubmission, Participation, Vote, VideoReport
 
 
 
@@ -180,6 +180,26 @@ class VoteAdmin(admin.ModelAdmin):
     def get_video(self, obj):
         return obj.participation.video_submission.title
     get_video.short_description = 'Voted For'
+
+@admin.register(VideoReport)
+class VideoReportAdmin(admin.ModelAdmin):
+    list_display = ['video', 'reporter', 'reason', 'created_at', 'resolved', 'view_video']
+    list_filter = ['reason', 'resolved', 'created_at']
+    search_fields = ['video__title', 'reporter__username', 'details']
+    date_hierarchy = 'created_at'
+
+    def view_video(self, obj):
+        url = reverse('admin:tournament_videosubmission_change', args=[obj.video.id])
+        return format_html(
+            '<a class="button" href="{}">View Video</a>',
+            url
+        )
+    view_video.short_description = 'Video Details'
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj:  # Editing existing object
+            return ['video', 'reporter', 'reason', 'created_at']
+        return ['created_at']
 
 # Optional: Customize admin site header and title
 admin.site.site_header = 'Tournament Management'

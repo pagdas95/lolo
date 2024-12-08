@@ -1,6 +1,6 @@
 # lolo/tournament/api/serializers.py
 from rest_framework import serializers
-from ..models import Category, Tournament, VideoSubmission, Participation, Vote
+from ..models import Category, Tournament, VideoSubmission, Participation, Vote, VideoReport
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -114,3 +114,8 @@ class VoteSerializer(serializers.ModelSerializer):
             'tournament': obj.participation.tournament.title,
             'video_title': obj.participation.video_submission.title
         }
+
+class VideoReportSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = VideoReport
+        fields = ['reason', 'details']

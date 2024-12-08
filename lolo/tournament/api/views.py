@@ -4,14 +4,15 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db import transaction
 from django.utils import timezone
-from ..models import Category, Tournament, VideoSubmission, Participation, Vote
+from ..models import Category, Tournament, VideoSubmission, Participation, Vote, VideoReport
 from .serializers import (
     CategorySerializer,
     TournamentListSerializer,
     TournamentDetailSerializer,
     VideoSubmissionSerializer,
     ParticipationSerializer,
-    VoteSerializer
+    VoteSerializer,
+    VideoReportSerializer
 )
 from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly
 from .pagination import CustomPagination, VideosPagination
@@ -647,7 +648,44 @@ class TournamentViewSet(viewsets.ModelViewSet):
                 'votes_received': participation.votes_received,
                 'is_finalist': participation.is_finalist
             }
-        })    
+        })   
+
+    @action(detail=True, methods=['post'], url_path='report-video')
+    def report_video(self, request, pk=None):
+        """Report a video for inappropriate content"""
+        tournament = self.get_object()
+        video_id = request.data.get('video_id')
+        
+        try:
+            participation = Participation.objects.get(
+                tournament=tournament,
+                video_submission_id=video_id
+            )
+        except Participation.DoesNotExist:
+            return Response(
+                {"error": "Video not found in this tournament"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Check if user already reported this video
+        if VideoReport.objects.filter(reporter=request.user, video=participation.video_submission).exists():
+            return Response(
+                {"error": "You have already reported this video"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        serializer = VideoReportSerializer(data=request.data)
+        if serializer.is_valid():
+            VideoReport.objects.create(
+                video=participation.video_submission,
+                reporter=request.user,
+                **serializer.validated_data
+            )
+            return Response(
+                {"message": "Video reported successfully"},
+                status=status.HTTP_201_CREATED
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST) 
 
     @action(detail=False)
     def my_voted_videos(self, request):
@@ -694,6 +732,9 @@ class TournamentViewSet(viewsets.ModelViewSet):
                         'id': vote.participation.video_submission.id,
                         'title': vote.participation.video_submission.title,
                         'description': vote.participation.video_submission.description,
+                        'video_file': request.build_absolute_uri(
+                            vote.participation.video_submission.video_file.url
+                        ),                        
                         'cover_image': request.build_absolute_uri(
                             vote.participation.video_submission.cover_image.url
                         ),

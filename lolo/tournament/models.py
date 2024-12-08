@@ -187,3 +187,40 @@ class Vote(models.Model):
         if not self.tournament_id and self.participation:
             self.tournament = self.participation.tournament
         super().save(*args, **kwargs)
+
+class VideoReport(models.Model):
+    """Reports for inappropriate videos"""
+    REPORT_REASONS = [
+        ('inappropriate_username', 'Inappropriate username'),
+        ('stolen_content', 'Stolen content'),
+        ('adult_content', 'Nudity/Adult content'),
+        ('racist', 'Racist'),
+        ('promoting_products', 'Promoting products'),
+        ('other', 'Other'),
+    ]
+
+    video = models.ForeignKey(
+        VideoSubmission,
+        on_delete=models.CASCADE,
+        related_name='reports'
+    )
+    reporter = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='video_reports'
+    )
+    reason = models.CharField(
+        max_length=50,
+        choices=REPORT_REASONS
+    )
+    details = models.TextField(
+        help_text="Additional details about the report"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    resolved = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ['reporter', 'video']  # One report per video per user
+
+    def __str__(self):
+        return f"Report by {self.reporter.username} on {self.video.title}"

@@ -124,7 +124,7 @@ STATIC_URL = f"https://{aws_s3_domain}/static/"
 #comment for now 
 DEFAULT_FROM_EMAIL = env(
     "DJANGO_DEFAULT_FROM_EMAIL",
-    default="lolo <noreply@lololympics.com>",
+    default="lolo <postmaster@lololympics.com>",
 )
 
 # https://docs.djangoproject.com/en/dev/ref/settings/#server-email
