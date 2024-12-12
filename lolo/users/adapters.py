@@ -53,7 +53,7 @@ class CustomAccountAdapter(DefaultAccountAdapter):
     def get_email_confirmation_url(self, request, emailconfirmation):
         """Generate frontend verification URL"""
         key = emailconfirmation.key
-        return f"{settings.FRONTEND_URL}/verify-email/{key}"
+        return f"{settings.FRONTEND_URL}/account-confirm-email/{key}"
 
     def send_confirmation_mail(self, request, emailconfirmation, signup):
         """Override to use frontend domain in emails"""
