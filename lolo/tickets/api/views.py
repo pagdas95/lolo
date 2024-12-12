@@ -22,6 +22,13 @@ class TicketPackageViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True, methods=['post'])
     def create_checkout_session(self, request, pk=None):
         package = self.get_object()
+        return_url = request.data.get('return_url')  # Get return URL from frontend
+        
+        if not return_url:
+            return Response(
+                {'error': 'return_url is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
         # Create order first
         order = Order.objects.create(
@@ -35,7 +42,6 @@ class TicketPackageViewSet(viewsets.ReadOnlyModelViewSet):
             checkout_session = stripe.checkout.Session.create(
                 client_reference_id=request.user.id,
                 customer_email=request.user.email,
-
                 invoice_creation={
                     'enabled': True,
                     'invoice_data': {
@@ -47,7 +53,6 @@ class TicketPackageViewSet(viewsets.ReadOnlyModelViewSet):
                         'footer': 'Thank you for your purchase!'
                     }
                 },
-                
                 line_items=[{
                     'price_data': {
                         'currency': 'eur',
@@ -55,25 +60,21 @@ class TicketPackageViewSet(viewsets.ReadOnlyModelViewSet):
                             'name': package.name,
                             'description': f'{package.number_of_tickets} Tickets',
                         },
-                        'unit_amount': int(package.price * 100),  # Convert to cents
+                        'unit_amount': int(package.price * 100),
                     },
                     'quantity': 1,
                 }],
                 mode='payment',
-                success_url=request.build_absolute_uri(
-                    reverse('tickets:success')
-                ) + f'?session_id={{CHECKOUT_SESSION_ID}}',
-                cancel_url=request.build_absolute_uri(
-                    reverse('tickets:cancelled')
-                ),
+                success_url=f"{return_url}?session_id={{CHECKOUT_SESSION_ID}}",
+                cancel_url=return_url,
                 metadata={
                     'order_id': order.id,
                     'package_id': package.id,
                     'number_of_tickets': package.number_of_tickets,
+                    'return_url': return_url
                 }
             )
             
-            # Update order with session ID
             order.stripe_checkout_session_id = checkout_session.id
             order.save()
 

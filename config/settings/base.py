@@ -321,6 +321,11 @@ CELERY_TASK_SEND_SENT_EVENT = True
 # django-allauth
 # ------------------------------------------------------------------------------
 ACCOUNT_ALLOW_REGISTRATION = env.bool("DJANGO_ACCOUNT_ALLOW_REGISTRATION", True)
+
+
+FRONTEND_URL = env('FRONTEND_URL', default='https://lolo-sable.vercel.app')
+FRONTEND_DOMAIN = env('FRONTEND_DOMAIN', default='https://lolo-sable.vercel.app')
+
 # https://docs.allauth.org/en/latest/account/configuration.html
 ACCOUNT_AUTHENTICATION_METHOD = "username"
 # https://docs.allauth.org/en/latest/account/configuration.html
@@ -329,6 +334,8 @@ ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 # https://docs.allauth.org/en/latest/account/configuration.html
 ACCOUNT_ADAPTER = "lolo.users.adapters.AccountAdapter"
+
+ACCOUNT_ADAPTER = "lolo.users.adapters.CustomAccountAdapter"
 # https://docs.allauth.org/en/latest/account/forms.html
 ACCOUNT_FORMS = {"signup": "lolo.users.forms.UserSignupForm"}
 # https://docs.allauth.org/en/latest/socialaccount/configuration.html

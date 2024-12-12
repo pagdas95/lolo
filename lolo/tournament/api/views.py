@@ -163,18 +163,25 @@ class TournamentViewSet(viewsets.ModelViewSet):
             'created_at': p.created_at
         } for p in participants]
 
-        # Add voting status
+        # Check if user is a participant
+        is_participant = Participation.objects.filter(
+            user=request.user, 
+            tournament=instance
+        ).exists()
+
+        # Check if user has voted
         vote = Vote.objects.filter(
             voter=request.user, 
             tournament=instance
         ).select_related('participation__video_submission', 'participation__user').first()
         
+        # Can vote if: is a participant AND hasn't voted yet
+        can_vote = is_participant and not vote
+        
         data['voting_status'] = {
             'has_voted': bool(vote),
-            'can_vote': not Participation.objects.filter(
-                user=request.user, 
-                tournament=instance
-            ).exists()
+            'can_vote': can_vote,
+            'is_participant': is_participant
         }
         
         if vote:
@@ -311,6 +318,13 @@ class TournamentViewSet(viewsets.ModelViewSet):
         user = request.user
         participation_id = request.data.get('participation_id')
 
+        # Check if user is a participant in this tournament
+        if not Participation.objects.filter(user=user, tournament=tournament).exists():
+            return Response(
+                {"error": "Only tournament participants can vote"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         if not participation_id:
             return Response(
                 {"error": "participation_id is required"},
@@ -365,10 +379,14 @@ class TournamentViewSet(viewsets.ModelViewSet):
             voter=user, 
             tournament=tournament
         ).select_related('participation__video_submission', 'participation__user').first()
+
+        # Check if user can vote (hasn't voted yet)
+        can_vote = not Vote.objects.filter(voter=user, tournament=tournament).exists()
         
         if vote:
             return Response({
                 'has_voted': True,
+                'can_vote': False, 
                 'vote_details': {
                     'voted_for': {
                         'username': vote.participation.user.username,
@@ -382,7 +400,7 @@ class TournamentViewSet(viewsets.ModelViewSet):
         
         return Response({
             'has_voted': False,
-            'can_vote': not Participation.objects.filter(user=user, tournament=tournament).exists()
+            'can_vote': can_vote
         })
 
     @action(detail=True, methods=['get'])

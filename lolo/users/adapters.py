@@ -6,6 +6,7 @@ from allauth.account.adapter import DefaultAccountAdapter
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from django.conf import settings
 
+
 if typing.TYPE_CHECKING:
     from allauth.socialaccount.models import SocialLogin
     from django.http import HttpRequest
@@ -46,3 +47,27 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
                 if last_name := data.get("last_name"):
                     user.name += f" {last_name}"
         return user
+
+
+class CustomAccountAdapter(DefaultAccountAdapter):
+    def get_email_confirmation_url(self, request, emailconfirmation):
+        """Generate frontend verification URL"""
+        key = emailconfirmation.key
+        return f"{settings.FRONTEND_URL}/verify-email/{key}"
+
+    def send_confirmation_mail(self, request, emailconfirmation, signup):
+        """Override to use frontend domain in emails"""
+        current_site = settings.FRONTEND_DOMAIN
+        activate_url = self.get_email_confirmation_url(request, emailconfirmation)
+        ctx = {
+            "user": emailconfirmation.email_address.user,
+            "activate_url": activate_url,
+            "current_site": current_site,
+            "key": emailconfirmation.key,
+        }
+        self.send_mail("account/email/email_confirmation", 
+                      emailconfirmation.email_address.email, ctx)
+
+    def get_password_reset_url(self, request, token):
+        """Generate frontend password reset URL"""
+        return f"{settings.FRONTEND_URL}/reset-password/{token}"
