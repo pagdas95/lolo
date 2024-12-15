@@ -372,6 +372,7 @@ REST_AUTH = {
     'USE_JWT': False,  # Set to True if you want to use JWT
     'SESSION_LOGIN': True,
     'USER_DETAILS_SERIALIZER': 'lolo.users.api.serializers.UserSerializer',
+    'PASSWORD_RESET_USE_SITES_DOMAIN': True,
 }
 
 # django-cors-headers - https://github.com/adamchainz/django-cors-headers#setup
