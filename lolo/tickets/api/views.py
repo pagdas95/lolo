@@ -19,30 +19,10 @@ class TicketPackageViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = TicketPackageSerializer
     permission_classes = [IsAuthenticated]
 
-
     @action(detail=True, methods=['post'])
     def create_checkout_session(self, request, pk=None):
         package = self.get_object()
         return_url = request.data.get('return_url')  # Get return URL from frontend
-        # Helper function to append new query parameters
-        def append_query_params(url, params):
-            """ Append query params to a given URL, regardless of whether it already has query params. """
-            url_parts = urlparse(url)
-            existing_params = parse_qs(url_parts.query)  # Extract current query params
-            existing_params.update(params)  # Merge with new params
-            updated_query = urlencode(existing_params, doseq=True)
-            new_url = urlunparse((
-                url_parts.scheme,
-                url_parts.netloc,
-                url_parts.path,
-                url_parts.params,
-                updated_query,
-                url_parts.fragment
-            ))
-            return new_url
-
-        # Prepare the success URL correctly
-        success_url = append_query_params(return_url, {'session_id': '{{CHECKOUT_SESSION_ID}}'})
         
         if not return_url:
             return Response(
@@ -85,7 +65,7 @@ class TicketPackageViewSet(viewsets.ReadOnlyModelViewSet):
                     'quantity': 1,
                 }],
                 mode='payment',
-                success_url=success_url,
+                success_url=f"{return_url}?session_id={{CHECKOUT_SESSION_ID}}",
                 cancel_url=return_url,
                 metadata={
                     'order_id': order.id,
