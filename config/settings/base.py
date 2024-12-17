@@ -382,7 +382,6 @@ CORS_ALLOWED_ORIGINS = [
     "https://localhost:3000", 
     "http://127.0.0.1:3000",
     "https://127.0.0.1:3000",
-    "https://lolo-sable.vercel.app",
     "https://laughterolympics-uat.vercel.app",
     "https://laughterolympics.com",
 ]
