@@ -65,7 +65,7 @@ class TicketPackageViewSet(viewsets.ReadOnlyModelViewSet):
                     'quantity': 1,
                 }],
                 mode='payment',
-                success_url=f"{return_url}?session_id={{CHECKOUT_SESSION_ID}}",
+                success_url=return_url,
                 cancel_url=return_url,
                 metadata={
                     'order_id': order.id,
