@@ -382,7 +382,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://localhost:3000", 
     "http://127.0.0.1:3000",
     "https://127.0.0.1:3000",
-    "https://laughterolympics-uat.vercel.app",
+    "*laughterolympics-uat*",
     "https://laughterolympics.com",
 ]
 CORS_ALLOW_ALL_ORIGINS = True
@@ -397,9 +397,7 @@ CORS_ALLOW_METHODS = [
     'PUT',
 ]
 
-CORS_ORIGIN_WHITELIST = (
-    "https://laughterolympics-uat.vercel.app",
-)
+
 
 CORS_ALLOW_HEADERS = [
     'accept',
