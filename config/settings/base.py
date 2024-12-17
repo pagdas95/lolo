@@ -390,8 +390,6 @@ CORS_ALLOW_ALL_ORIGINS = True
 
 CORS_ORIGIN_WHITELIST = [
     'http://localhost:3000',
-    'https://laughterolympics-uat.vercel.app',
-    'https://laughterolympics.com',
 ]
 
 CORS_ALLOW_METHODS = [
