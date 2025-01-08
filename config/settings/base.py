@@ -377,17 +377,38 @@ REST_AUTH = {
 
 # django-cors-headers - https://github.com/adamchainz/django-cors-headers#setup
 CORS_URLS_REGEX = r"^/api/.*$"
-CORS_ALLOWED_ORIGINS = [
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:3000",  # Adjust based on where the frontend is hosted
+#     "https://localhost:3000", 
+#     "http://127.0.0.1:3000",
+#     "https://127.0.0.1:3000",
+#     "https://laughterolympics-uat.com",
+#     "https://vercel.com",
+#     "https://laughterolympics.com",
+# ]
+ALLOWED_HOSTS=[
     "http://localhost:3000",  # Adjust based on where the frontend is hosted
     "https://localhost:3000", 
     "http://127.0.0.1:3000",
     "https://127.0.0.1:3000",
-    "https://laughterolympics-uat",
+    "https://laughterolympics-uat.com",
     "https://vercel.com",
     "https://laughterolympics.com",
 ]
-CORS_ALLOW_ALL_ORIGINS = True
+
+
+CORS_ORIGINS_ALLOW_ALL = False
 CORS_ALLOW_CREDENTIALS = True
+
+CORS_ORIGINS_WHITELIST=(
+    "http://localhost:3000",  # Adjust based on where the frontend is hosted
+    "https://localhost:3000", 
+    "http://127.0.0.1:3000",
+    "https://127.0.0.1:3000",
+    "https://laughterolympics-uat.com",
+    "https://vercel.com",
+    "https://laughterolympics.com",
+)
 
 CORS_ALLOW_METHODS = [
     'DELETE',
