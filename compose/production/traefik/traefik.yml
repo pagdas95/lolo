@@ -31,7 +31,7 @@ certificatesResolvers:
 http:
   routers:
     web-secure-router:
-      rule: 'Host(`lololympics.com`) || Host(`lololympics.com`)'
+      rule: 'Host(`lololympics.com`) || Host(`www.lololympics.com`)'
       entryPoints:
         - web-secure
       middlewares:
