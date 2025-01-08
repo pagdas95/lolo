@@ -377,38 +377,30 @@ REST_AUTH = {
 
 # django-cors-headers - https://github.com/adamchainz/django-cors-headers#setup
 CORS_URLS_REGEX = r"^/api/.*$"
-# CORS_ALLOWED_ORIGINS = [
-#     "http://localhost:3000",  # Adjust based on where the frontend is hosted
-#     "https://localhost:3000", 
-#     "http://127.0.0.1:3000",
-#     "https://127.0.0.1:3000",
-#     "https://laughterolympics-uat.com",
-#     "https://vercel.com",
-#     "https://laughterolympics.com",
-# ]
-ALLOWED_HOSTS=[
-    "http://localhost:3000",  # Adjust based on where the frontend is hosted
-    "https://localhost:3000", 
+# ALLOWED_HOSTS should be just hostnames, not full URLs
+ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1",
+    "laughterolympics-uat.com",
+    "vercel.com",
+    "laughterolympics.com",
+]
+
+# Update CORS_ALLOWED_ORIGINS to include all your frontend URLs
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "https://localhost:3000",
     "http://127.0.0.1:3000",
     "https://127.0.0.1:3000",
     "https://laughterolympics-uat.com",
-    "https://vercel.com",
     "https://laughterolympics.com",
 ]
 
+# If you need to allow any subdomains, use CORS_ALLOWED_ORIGIN_REGEXES
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://\w+\.laughterolympics\.com$",
+]
 
-CORS_ORIGINS_ALLOW_ALL = False
-CORS_ALLOW_CREDENTIALS = True
-
-CORS_ORIGINS_WHITELIST=(
-    "http://localhost:3000",  # Adjust based on where the frontend is hosted
-    "https://localhost:3000", 
-    "http://127.0.0.1:3000",
-    "https://127.0.0.1:3000",
-    "https://laughterolympics-uat.com",
-    "https://vercel.com",
-    "https://laughterolympics.com",
-)
 
 CORS_ALLOW_METHODS = [
     'DELETE',
@@ -419,19 +411,24 @@ CORS_ALLOW_METHODS = [
     'PUT',
 ]
 
-
-
+# Only include headers that you specifically need
 CORS_ALLOW_HEADERS = [
     'accept',
     'authorization',
     'content-type',
-    'origin',
     'x-csrftoken',
-    'x-requested-with',
 ]
 
-CORS_EXPOSE_HEADERS = ['content-type', 'x-csrftoken']
+# Keep these settings
+CORS_ALLOW_CREDENTIALS = True
 CORS_PREFLIGHT_MAX_AGE = 86400  # 24 hours
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://laughterolympics-uat.com",
+    "https://laughterolympics.com",
+    "http://localhost:3000",
+    "https://localhost:3000",
+]
 
 # By Default swagger ui is available only to admin user(s). You can change permission classes to change that
 # See more configuration options at https://drf-spectacular.readthedocs.io/en/latest/settings.html#settings
