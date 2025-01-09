@@ -22,7 +22,7 @@ class TicketPackageViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True, methods=['post'])
     def create_checkout_session(self, request, pk=None):
         package = self.get_object()
-        return_url = request.data.get('return_url')  # Get return URL from frontend
+        return_url = request.data.get('return_url')
         
         if not return_url:
             return Response(
@@ -38,6 +38,16 @@ class TicketPackageViewSet(viewsets.ReadOnlyModelViewSet):
         )
 
         try:
+            # Get the auth token for the user
+            auth_token = request.auth.key if hasattr(request, 'auth') and request.auth else None
+            
+            # Include the token in the success URL
+            success_url = (
+                f"{return_url}?status=success"
+                f"&session_id={{CHECKOUT_SESSION_ID}}"
+                f"&token={auth_token if auth_token else ''}"
+            )
+            
             # Create Stripe Checkout Session
             checkout_session = stripe.checkout.Session.create(
                 client_reference_id=request.user.id,
@@ -65,7 +75,7 @@ class TicketPackageViewSet(viewsets.ReadOnlyModelViewSet):
                     'quantity': 1,
                 }],
                 mode='payment',
-                success_url=f"{return_url}?status=success&session_id={{CHECKOUT_SESSION_ID}}",
+                success_url=success_url,
                 cancel_url=f"{return_url}?status=cancelled",
                 metadata={
                     'order_id': order.id,
