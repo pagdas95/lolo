@@ -46,6 +46,7 @@ class TicketPackageViewSet(viewsets.ReadOnlyModelViewSet):
                 f"{return_url}?status=success"
                 f"&session_id={{CHECKOUT_SESSION_ID}}"
                 f"&token={auth_token if auth_token else ''}"
+                f"&return_url={return_url}"
             )
             
             # Create Stripe Checkout Session
