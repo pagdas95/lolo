@@ -42,6 +42,8 @@ services:
       - django
     volumes:
       - production_traefik:/etc/traefik/acme
+      - ./compose/production/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./compose/production/traefik/dynamic.yml:/etc/traefik/dynamic/conf.yml:ro       
     env_file:
       - ./.envs/.production/.traefik
     ports:

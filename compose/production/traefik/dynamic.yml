@@ -1,0 +1,7 @@
+# dynamic.yml
+http:
+  routers:
+    web-secure-router:
+      rule: "{{ env `TRAEFIK_DOMAIN_RULE` }}"
+    flower-secure-router:
+      rule: "{{ env `TRAEFIK_FLOWER_DOMAIN_RULE` }}"
