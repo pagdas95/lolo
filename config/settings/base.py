@@ -384,6 +384,7 @@ ALLOWED_HOSTS = [
     "laughterolympics-uat.com",
     "vercel.com",
     "laughterolympics.com",
+    "www.prod.lololympics.com"
 ]
 
 # Update CORS_ALLOWED_ORIGINS to include all your frontend URLs
@@ -394,6 +395,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://127.0.0.1:3000",
     "https://laughterolympics-uat.com",
     "https://laughterolympics.com",
+    "vercel.com",
 ]
 
 # If you need to allow any subdomains, use CORS_ALLOWED_ORIGIN_REGEXES
@@ -428,6 +430,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://laughterolympics.com",
     "http://localhost:3000",
     "https://localhost:3000",
+    "vercel.com",
 ]
 
 # By Default swagger ui is available only to admin user(s). You can change permission classes to change that
