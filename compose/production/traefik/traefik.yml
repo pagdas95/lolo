@@ -59,10 +59,7 @@ http:
           - url: http://flower:5555
 
 providers:
+  # Single file provider that watches a directory
   file:
-    filename: /etc/traefik/traefik.yml
-    watch: true
-  file:
-    # Only use the dynamic directory as the source
     directory: /etc/traefik/dynamic
     watch: true
