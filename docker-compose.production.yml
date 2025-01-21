@@ -41,7 +41,7 @@ services:
     depends_on:
       - django
     volumes:
-      - production_traefik:/etc/traefik/acme
+      - production_traefik:/etc/traefik/acme:rw
       - ./compose/production/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
       - ./compose/production/traefik/dynamic.yml:/etc/traefik/dynamic/conf.yml:ro       
     env_file:

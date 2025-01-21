@@ -1,7 +1,19 @@
-# dynamic.yml
 http:
   routers:
     web-secure-router:
       rule: "{{ env `TRAEFIK_DOMAIN_RULE` }}"
+      entryPoints:
+        - web-secure
+      middlewares:
+        - csrf
+      service: django
+      tls:
+        certResolver: letsencrypt
+
     flower-secure-router:
       rule: "{{ env `TRAEFIK_FLOWER_DOMAIN_RULE` }}"
+      entryPoints:
+        - flower
+      service: flower
+      tls:
+        certResolver: letsencrypt
