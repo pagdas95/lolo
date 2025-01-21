@@ -1,6 +1,12 @@
-# dynamic.yml
 http:
   routers:
+    acme-router:
+      rule: "PathPrefix(`/.well-known/acme-challenge/`)"
+      entryPoints:
+        - web
+      service: noop
+      priority: 100
+
     web-secure-router:
       rule: "{{ env `TRAEFIK_DOMAIN_RULE` }}"
       entryPoints:
@@ -18,3 +24,24 @@ http:
       service: flower
       tls:
         certResolver: letsencrypt
+
+  middlewares:
+    csrf:
+      headers:
+        hostsProxyHeaders: ['X-CSRFToken']
+
+  services:
+    noop:
+      loadBalancer:
+        servers:
+          - url: http://192.0.2.0:80
+
+    django:
+      loadBalancer:
+        servers:
+          - url: http://django:5000
+
+    flower:
+      loadBalancer:
+        servers:
+          - url: http://flower:5555
