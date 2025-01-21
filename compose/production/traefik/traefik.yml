@@ -62,6 +62,6 @@ providers:
   file:
     filename: /etc/traefik/traefik.yml
     watch: true
-  file:
+  dynamic:  # Changed from 'file' to 'dynamic'
     directory: /etc/traefik/dynamic
     watch: true
