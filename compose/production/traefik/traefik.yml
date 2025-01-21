@@ -30,34 +30,24 @@ certificatesResolvers:
 
 http:
   routers:
-    web-secure-router:
-      rule: 'Host(`lololympics.com`) || Host(`www.lololympics.com`)'
+    acme-router:
+      rule: "PathPrefix(`/.well-known/acme-challenge/`)"
       entryPoints:
-        - web-secure
-      middlewares:
-        - csrf
-      service: django
-      tls:
-        # https://doc.traefik.io/traefik/routing/routers/#certresolver
-        certResolver: letsencrypt
-
-    flower-secure-router:
-      rule: 'Host(`lololympics.com`)'
-      entryPoints:
-        - flower
-      service: flower
-      tls:
-        # https://doc.traefik.io/traefik/master/routing/routers/#certresolver
-        certResolver: letsencrypt
+        - web
+      service: noop
+      priority: 100
 
   middlewares:
     csrf:
-      # https://doc.traefik.io/traefik/master/middlewares/http/headers/#hostsproxyheaders
-      # https://docs.djangoproject.com/en/dev/ref/csrf/#ajax
       headers:
         hostsProxyHeaders: ['X-CSRFToken']
 
   services:
+    noop:
+      loadBalancer:
+        servers:
+          - url: http://192.0.2.0:80
+
     django:
       loadBalancer:
         servers:
@@ -69,7 +59,9 @@ http:
           - url: http://flower:5555
 
 providers:
-  # https://doc.traefik.io/traefik/master/providers/file/
   file:
     filename: /etc/traefik/traefik.yml
+    watch: true
+  file:
+    directory: /etc/traefik/dynamic
     watch: true
