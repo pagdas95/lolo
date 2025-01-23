@@ -378,18 +378,22 @@ REST_AUTH = {
 # django-cors-headers - https://github.com/adamchainz/django-cors-headers#setup
 CORS_URLS_REGEX = r"^/api/.*$"
 # ALLOWED_HOSTS should be just hostnames, not full URLs
-ALLOWED_HOSTS = [
-    
+ALLOWED_HOSTS = [    
     "prod.lololympics.com",
     "laughterolympics.com",
+    "localhost",
+    "127.0.0.1",
 
 ]
 
 # Update CORS_ALLOWED_ORIGINS to include all your frontend URLs
 CORS_ALLOWED_ORIGINS = [
-
     "https://laughterolympics.com",    # Vercel production URL
     "https://www.laughterolympics.com",  # With www
+    "http://localhost:3000",      # React default port
+    "http://127.0.0.1:3000",
+    "https://localhost:3000",     # If using HTTPS locally
+    "https://127.0.0.1:3000",
 ]
 
 # If you need to allow any subdomains, use CORS_ALLOWED_ORIGIN_REGEXES
@@ -424,6 +428,8 @@ CSRF_TRUSTED_ORIGINS = [
     "https://prod.lololympics.com",     # Your backend
     "https://laughterolympics.com",     # Vercel frontend
     "https://www.laughterolympics.com", # With www
+    "http://localhost:3000",
+    "https://localhost:3000",
 ]
 
 # By Default swagger ui is available only to admin user(s). You can change permission classes to change that
