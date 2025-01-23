@@ -376,7 +376,7 @@ REST_AUTH = {
 }
 
 # django-cors-headers - https://github.com/adamchainz/django-cors-headers#setup
-CORS_URLS_REGEX = r"^/api/.*$"
+# CORS_URLS_REGEX = r"^/api/.*$"
 # ALLOWED_HOSTS should be just hostnames, not full URLs
 ALLOWED_HOSTS = [
 
