@@ -416,8 +416,6 @@ CORS_ALLOW_HEADERS = [
     'accept',
     'authorization',
     'content-type',
-    'x-csrftoken',
-    'origin',
 ]
 
 # Keep these settings
