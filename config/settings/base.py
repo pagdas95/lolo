@@ -379,23 +379,16 @@ REST_AUTH = {
 CORS_URLS_REGEX = r"^/api/.*$"
 # ALLOWED_HOSTS should be just hostnames, not full URLs
 ALLOWED_HOSTS = [
-    "localhost",
-    "127.0.0.1",
-    "laughterolympics-uat.com",
-    "vercel.com",
+
     "laughterolympics.com",
-    "prod.lololympics.com"
+
 ]
 
 # Update CORS_ALLOWED_ORIGINS to include all your frontend URLs
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "https://localhost:3000",
-    "http://127.0.0.1:3000",
-    "https://127.0.0.1:3000",
-    "https://laughterolympics-uat.com",
+
     "https://laughterolympics.com",
-    "https://vercel.com",
+
 ]
 
 # If you need to allow any subdomains, use CORS_ALLOWED_ORIGIN_REGEXES
@@ -426,11 +419,7 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_PREFLIGHT_MAX_AGE = 86400  # 24 hours
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://laughterolympics-uat.com",
     "https://laughterolympics.com",
-    "http://localhost:3000",
-    "https://localhost:3000",
-    "https://vercel.com",
 ]
 
 # By Default swagger ui is available only to admin user(s). You can change permission classes to change that
