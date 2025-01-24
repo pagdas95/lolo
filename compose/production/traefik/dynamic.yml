@@ -1,18 +1,33 @@
 http:
+  middlewares:
+    cors-config:
+      headers:
+        customResponseHeaders:
+          Access-Control-Allow-Origin: "https://laughterolympics.com"
+          Access-Control-Allow-Methods: "GET,POST,PUT,DELETE,OPTIONS"
+          Access-Control-Allow-Headers: "Origin,Content-Type,Accept,Authorization,X-CSRF-Token"
+          Access-Control-Allow-Credentials: "true"
+          Access-Control-Max-Age: "3600"
+          Access-Control-Expose-Headers: "Content-Length,Content-Range"
+
   routers:
     web-secure-router:
       rule: "Host(`pro.lololympics.com`)"
       entryPoints:
         - web-secure
+      middlewares:
+        - cors-config
       service: django
-      tls: {}
+      tls:
+        certResolver: letsencrypt
 
     flower-secure-router:
-      rule: "Host(`pro.lololympics.com`) && PathPrefix(`/flower`)"
+      rule: "Host(`pro.lololympics.com`)"
       entryPoints:
         - flower
       service: flower
-      tls: {}
+      tls:
+        certResolver: letsencrypt
 
   services:
     django:

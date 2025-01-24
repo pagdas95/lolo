@@ -5,27 +5,15 @@ entryPoints:
   web:
     address: ':80'
     http:
-      middlewares:
-        - cors@file
       redirections:
         entryPoint:
           to: web-secure
 
   web-secure:
     address: ':443'
-    http:
-      middlewares:
-        - cors@file
-      tls:
-        certResolver: letsencrypt
 
   flower:
     address: ':5555'
-    http:
-      middlewares:
-        - cors@file
-      tls:
-        certResolver: letsencrypt
 
 certificatesResolvers:
   letsencrypt:
@@ -34,16 +22,6 @@ certificatesResolvers:
       storage: /etc/traefik/acme/acme.json
       httpChallenge:
         entryPoint: web
-
-http:
-  middlewares:
-    cors:
-      headers:
-        accessControlAllowOrigin: "https://laughterolympics.com"
-        accessControlAllowMethods: "GET,POST,PUT,DELETE,OPTIONS"
-        accessControlAllowHeaders: "*"
-        accessControlAllowCredentials: "true"
-        accessControlMaxAge: "100"
 
 providers:
   file:
