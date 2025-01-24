@@ -1,4 +1,14 @@
 http:
+  routers:
+    web-secure-router:
+      rule: "Host(`prod.lololympics.com`)"
+      entryPoints:
+        - web-secure
+      middlewares:
+        - cors-config
+      service: django
+      tls: {}
+
   middlewares:
     cors-config:
       headers:
@@ -27,17 +37,6 @@ http:
         accessControlAllowCredentials: true
         accessControlMaxAge: 3600
         addVaryHeader: true
-
-  routers:
-    web-secure-router:
-      rule: "Host(`prod.lololympics.com`)"
-      entryPoints:
-        - web-secure
-      middlewares:
-        - cors-config
-      service: django
-      tls:
-        certResolver: letsencrypt
 
   services:
     django:
