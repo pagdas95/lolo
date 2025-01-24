@@ -140,9 +140,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#middleware
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "lolo.middleware.RequestLoggingMiddleware",
     "django.middleware.security.SecurityMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -388,7 +388,6 @@ ALLOWED_HOSTS = [
 
 ]
 
-CORS_ALLOW_ALL_ORIGINS = True
 # Update CORS_ALLOWED_ORIGINS to include all your frontend URLs
 CORS_ALLOWED_ORIGINS = [
     "https://laughterolympics.com",    # Vercel production URL
