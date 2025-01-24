@@ -38,3 +38,9 @@ http:
       service: django
       tls:
         certResolver: letsencrypt
+
+  services:
+    django:
+      loadBalancer:
+        servers:
+          - url: "http://django:5000"
