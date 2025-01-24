@@ -386,6 +386,7 @@ ALLOWED_HOSTS = [
 
 ]
 
+CORS_ALLOW_ALL_ORIGINS = True
 # Update CORS_ALLOWED_ORIGINS to include all your frontend URLs
 CORS_ALLOWED_ORIGINS = [
     "https://laughterolympics.com",    # Vercel production URL
