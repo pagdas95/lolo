@@ -12,7 +12,7 @@ http:
       entryPoints:
         - web-secure
       middlewares:
-        - security-headers
+        - cors-headers
       service: django
       tls:
         certResolver: letsencrypt
@@ -21,21 +21,21 @@ http:
       rule: "{{ env `TRAEFIK_FLOWER_DOMAIN_RULE` }}"
       entryPoints:
         - flower
+      middlewares:
+        - cors-headers
       service: flower
       tls:
         certResolver: letsencrypt
 
   middlewares:
-    security-headers:
+    cors-headers:
       headers:
-        hostsProxyHeaders:
-          - "X-CSRFToken"
-        customResponseHeaders:
-          Access-Control-Allow-Origin: "https://laughterolympics.com"
-          Access-Control-Allow-Methods: "GET,POST,PUT,DELETE,OPTIONS"
-          Access-Control-Allow-Headers: "Origin,Content-Type,Accept,Authorization,X-CSRF-Token"
-          Access-Control-Allow-Credentials: "true"
-          Access-Control-Max-Age: "3600"
+        accessControlAllowOrigin: "https://laughterolympics.com"
+        accessControlAllowMethods: "GET,POST,PUT,DELETE,OPTIONS"
+        accessControlAllowHeaders: "*"
+        accessControlAllowCredentials: "true"
+        accessControlMaxAge: "100"
+        addVaryHeader: "true"
 
   services:
     noop:
