@@ -12,6 +12,7 @@ http:
       entryPoints:
         - web-secure
       middlewares:
+        - cors
         - csrf
       service: django
       tls:
@@ -26,6 +27,25 @@ http:
         certResolver: letsencrypt
 
   middlewares:
+    cors:
+      headers:
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        accessControlAllowHeaders:
+          - "Origin"
+          - "Content-Type"
+          - "Accept"
+          - "Authorization"
+          - "X-CSRF-Token"
+        accessControlAllowOriginList:
+          - "https://laughterolympics.com"
+        accessControlAllowCredentials: true
+        accessControlMaxAge: 100
+        addVaryHeader: true
     csrf:
       headers:
         hostsProxyHeaders: ['X-CSRFToken']
