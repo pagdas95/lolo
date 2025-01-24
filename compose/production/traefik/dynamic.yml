@@ -1,45 +1,7 @@
+# dynamic.yml
 http:
   routers:
     web-secure-router:
-      rule: "Host(`prod.lololympics.com`)"
-      entryPoints:
-        - web-secure
-      middlewares:
-        - cors-config
-      service: django
-      tls: {}
-
-  middlewares:
-    cors-config:
-      headers:
-        accessControlAllowOriginList:
-          - "https://laughterolympics.com"
-          - "https://www.laughterolympics.com"
-          - "http://localhost:3000"
-          - "https://localhost:3000"
-        accessControlAllowMethods:
-          - GET
-          - POST
-          - PUT
-          - DELETE
-          - OPTIONS
-          - PATCH
-        accessControlAllowHeaders:
-          - "accept"
-          - "authorization"
-          - "content-type"
-          - "user-agent"
-          - "x-csrftoken"
-          - "origin"
-        accessControlExposeHeaders:
-          - "Content-Type"
-          - "X-CSRFToken"
-        accessControlAllowCredentials: true
-        accessControlMaxAge: 3600
-        addVaryHeader: true
-
-  services:
-    django:
-      loadBalancer:
-        servers:
-          - url: "http://django:5000"
+      rule: "{{ env `TRAEFIK_DOMAIN_RULE` }}"
+    flower-secure-router:
+      rule: "{{ env `TRAEFIK_FLOWER_DOMAIN_RULE` }}"
