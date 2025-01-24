@@ -369,12 +369,13 @@ REST_FRAMEWORK = {
 
 # dj-rest-auth settings
 REST_AUTH = {
-    'USE_JWT': False,  # Set to True if you want to use JWT
+    'USE_JWT': False,
     'SESSION_LOGIN': True,
     'USER_DETAILS_SERIALIZER': 'lolo.users.api.serializers.UserSerializer',
     'PASSWORD_RESET_USE_SITES_DOMAIN': True,
+    'OLD_PASSWORD_FIELD_ENABLED': True,
+    'LOGOUT_ON_PASSWORD_CHANGE': False,
 }
-
 # django-cors-headers - https://github.com/adamchainz/django-cors-headers#setup
 CORS_URLS_REGEX = r"^/api/.*$"
 # ALLOWED_HOSTS should be just hostnames, not full URLs
@@ -420,11 +421,13 @@ CORS_ALLOW_HEADERS = [
     'accept',
     'authorization',
     'content-type',
+    'user-agent',
     'x-csrftoken',
     'origin',
-    'x-requested-with',  # Add this
-    'access-control-allow-origin',  # Add this
-    'access-control-allow-credentials',  # Add this
+    'access-control-allow-origin',
+    'access-control-allow-credentials',
+    'access-control-allow-headers',
+    'access-control-allow-methods',
 ]
 
 # Keep these settings
@@ -439,6 +442,12 @@ CSRF_TRUSTED_ORIGINS = [
     "https://localhost:3000",
 ]
 
+SESSION_COOKIE_SAMESITE = 'None'  # Required for cross-site requests
+CSRF_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_HTTPONLY = False  # Allows JavaScript access to the cookie
+CSRF_USE_SESSIONS = False
 # By Default swagger ui is available only to admin user(s). You can change permission classes to change that
 # See more configuration options at https://drf-spectacular.readthedocs.io/en/latest/settings.html#settings
 SPECTACULAR_SETTINGS = {
