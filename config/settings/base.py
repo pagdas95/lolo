@@ -454,12 +454,6 @@ CSRF_TRUSTED_ORIGINS = [
     "https://localhost:3000",
 ]
 
-SESSION_COOKIE_SAMESITE = 'None'  # Required for cross-site requests
-CSRF_COOKIE_SAMESITE = 'None'
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-CSRF_COOKIE_HTTPONLY = False  # Allows JavaScript access to the cookie
-CSRF_USE_SESSIONS = False
 # By Default swagger ui is available only to admin user(s). You can change permission classes to change that
 # See more configuration options at https://drf-spectacular.readthedocs.io/en/latest/settings.html#settings
 SPECTACULAR_SETTINGS = {
