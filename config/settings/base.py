@@ -140,9 +140,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#middleware
 MIDDLEWARE = [
+    "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "lolo.middleware.RequestLoggingMiddleware",
-    "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -389,8 +389,6 @@ REST_AUTH = {
     'SESSION_LOGIN': True,
     'USER_DETAILS_SERIALIZER': 'lolo.users.api.serializers.UserSerializer',
     'PASSWORD_RESET_USE_SITES_DOMAIN': True,
-    'OLD_PASSWORD_FIELD_ENABLED': True,
-    'LOGOUT_ON_PASSWORD_CHANGE': False,
 }
 # django-cors-headers - https://github.com/adamchainz/django-cors-headers#setup
 CORS_URLS_REGEX = r"^/api/.*$"
@@ -439,9 +437,7 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_PREFLIGHT_MAX_AGE = 86400  # 24 hours
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://prod.lololympics.com",     # Your backend
     "https://laughterolympics.com",     # Vercel frontend
-    "https://www.laughterolympics.com", # With www
     "http://localhost:3000",
     "https://localhost:3000",
 ]
