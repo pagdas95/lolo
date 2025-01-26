@@ -424,10 +424,6 @@ CORS_ALLOW_METHODS = [
     'POST',
     'PUT',
 ]
-CORS_EXPOSE_HEADERS = [
-    'Content-Type',
-    'X-CSRFToken',
-]
 # Only include headers that you specifically need
 CORS_ALLOW_HEADERS = [
     'accept',
