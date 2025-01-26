@@ -403,7 +403,6 @@ ALLOWED_HOSTS = [
 
 ]
 
-CORS_ALLOW_ALL_ORIGINS = True
 # Update CORS_ALLOWED_ORIGINS to include all your frontend URLs
 CORS_ALLOWED_ORIGINS = [
     "https://laughterolympics.com",    # Vercel production URL
@@ -414,7 +413,10 @@ CORS_ALLOWED_ORIGINS = [
     "https://127.0.0.1:3000",
 ]
 
-
+# If you need to allow any subdomains, use CORS_ALLOWED_ORIGIN_REGEXES
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://\w+\.laughterolympics\.com$",
+]
 
 CORS_ALLOW_METHODS = [
     'DELETE',
@@ -429,13 +431,7 @@ CORS_ALLOW_HEADERS = [
     'accept',
     'authorization',
     'content-type',
-    'user-agent',
     'x-csrftoken',
-    'origin',
-    'access-control-allow-origin',
-    'access-control-allow-credentials',
-    'access-control-allow-headers',
-    'access-control-allow-methods',
 ]
 
 # Keep these settings
