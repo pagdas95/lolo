@@ -402,14 +402,7 @@ ALLOWED_HOSTS = [
 ]
 
 # Update CORS_ALLOWED_ORIGINS to include all your frontend URLs
-CORS_ALLOWED_ORIGINS = [
-    "https://laughterolympics.com",    # Vercel production URL
-    "https://www.laughterolympics.com",  # With www
-    "http://localhost:3000",      # React default port
-    "http://127.0.0.1:3000",
-    "https://localhost:3000",     # If using HTTPS locally
-    "https://127.0.0.1:3000",
-]
+CORS_ALLOWED_ORIGINS = env.list("DJANGO_CORS_ALLOWED_ORIGINS", default=[])
 
 # If you need to allow any subdomains, use CORS_ALLOWED_ORIGIN_REGEXES
 CORS_ALLOWED_ORIGIN_REGEXES = [
@@ -436,12 +429,10 @@ CORS_ALLOW_HEADERS = [
 CORS_ALLOW_CREDENTIALS = True
 CORS_PREFLIGHT_MAX_AGE = 86400  # 24 hours
 
-CSRF_TRUSTED_ORIGINS = [
-    "https://laughterolympics.com",     # Vercel frontend
-    "http://localhost:3000",
-    "https://localhost:3000",
-]
+CSRF_TRUSTED_ORIGINS = env.list("DJANGO_CSRF_TRUSTED_ORIGINS", default=[])
 
+
+CORS_ALLOW_ALL_ORIGINS = env.bool("DJANGO_CORS_ALLOW_ALL_ORIGINS", default=False)
 # By Default swagger ui is available only to admin user(s). You can change permission classes to change that
 # See more configuration options at https://drf-spectacular.readthedocs.io/en/latest/settings.html#settings
 SPECTACULAR_SETTINGS = {
