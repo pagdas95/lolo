@@ -53,6 +53,7 @@ class TicketPackageViewSet(viewsets.ReadOnlyModelViewSet):
             checkout_session = stripe.checkout.Session.create(
                 client_reference_id=request.user.id,
                 customer_email=request.user.email,
+                allow_promotion_codes=True,
                 invoice_creation={
                     'enabled': True,
                     'invoice_data': {
@@ -78,6 +79,7 @@ class TicketPackageViewSet(viewsets.ReadOnlyModelViewSet):
                 mode='payment',
                 success_url=success_url,
                 cancel_url=f"{return_url}?status=cancelled",
+                payment_method_types=['card'],
                 metadata={
                     'order_id': order.id,
                     'package_id': package.id,
