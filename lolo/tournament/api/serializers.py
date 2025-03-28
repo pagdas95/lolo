@@ -15,7 +15,7 @@ class TournamentListSerializer(serializers.ModelSerializer):
     status = serializers.CharField(read_only=True, required=False)
     time_info = serializers.CharField(read_only=True, required=False)
     participation_info = serializers.DictField(read_only=True, required=False)
-
+    group_info = serializers.SerializerMethodField()
 
     class Meta:
         model = Tournament
@@ -29,20 +29,55 @@ class TournamentListSerializer(serializers.ModelSerializer):
             'end_time', 
             'participant_count',
             'is_active', 
-            'entry_fee', 
-            'prizes',  # Now a text field
-            'rules',    # Added rules to list view
+            'entry_fee',
+            'prizes',
+            'rules',
             'status',
             'time_info',
-            'participation_info'
+            'participation_info',
+            'is_repeating',
+            'group_name',
+            'group_info',
+            'participant_limit'
         ]
 
     def get_participant_count(self, obj):
         return obj.participations.count()
+        
+    def get_group_info(self, obj):
+        if not obj.is_repeating:
+            return None
+            
+        if obj.parent_tournament:
+            return {
+                'is_child': True,
+                'parent_id': obj.parent_tournament.id,
+                'parent_title': obj.parent_tournament.title,
+                'group': obj.group_name
+            }
+        else:
+            # This is a parent tournament
+            group_count = obj.active_group_count
+            child_tournaments = obj.child_tournaments.all()
+            
+            return {
+                'is_parent': True,
+                'active_groups': group_count,
+                'child_tournaments': [
+                    {
+                        'id': child.id,
+                        'title': child.title,
+                        'group': child.group_name,
+                        'participants': child.participations.count(),
+                        'is_full': child.participations.count() >= child.participant_limit if child.participant_limit else False
+                    } for child in child_tournaments
+                ]
+            }
 
 class TournamentDetailSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True)
     is_active = serializers.BooleanField(read_only=True)
+    group_info = serializers.SerializerMethodField()
 
     class Meta:
         model = Tournament
@@ -65,9 +100,43 @@ class TournamentDetailSerializer(serializers.ModelSerializer):
             'featured',
             'created_at',
             'updated_at',
-            'created_by'
+            'created_by',
+            'is_repeating',
+            'parent_tournament',
+            'group_name',
+            'group_info'
         ]
         read_only_fields = ['created_by', 'created_at', 'updated_at']
+        
+    def get_group_info(self, obj):
+        if not obj.is_repeating:
+            return None
+            
+        if obj.parent_tournament:
+            return {
+                'is_child': True,
+                'parent_id': obj.parent_tournament.id,
+                'parent_title': obj.parent_tournament.title,
+                'group': obj.group_name
+            }
+        else:
+            # This is a parent tournament
+            group_count = obj.active_group_count
+            child_tournaments = obj.child_tournaments.all()
+            
+            return {
+                'is_parent': True,
+                'active_groups': group_count,
+                'child_tournaments': [
+                    {
+                        'id': child.id,
+                        'title': child.title,
+                        'group': child.group_name,
+                        'participants': child.participations.count(),
+                        'is_full': child.participations.count() >= child.participant_limit if child.participant_limit else False
+                    } for child in child_tournaments
+                ]
+            }
 
 class VideoSubmissionSerializer(serializers.ModelSerializer):
     user_username = serializers.CharField(source='user.username', read_only=True)

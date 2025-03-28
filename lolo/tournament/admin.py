@@ -4,8 +4,6 @@ from django.utils.html import format_html
 from django.urls import reverse
 from .models import Category, Tournament, VideoSubmission, Participation, Vote, VideoReport
 
-
-
 class ParticipationInline(admin.TabularInline):
     model = Participation
     extra = 0
@@ -18,6 +16,29 @@ class VoteInline(admin.TabularInline):
     extra = 0
     readonly_fields = ['created_at']
     can_delete = False
+
+class ChildTournamentInline(admin.TabularInline):
+    model = Tournament
+    fk_name = 'parent_tournament'
+    extra = 0
+    fields = ['title', 'group_name', 'participant_count', 'is_active', 'created_at']
+    readonly_fields = ['title', 'group_name', 'participant_count', 'is_active', 'created_at']
+    can_delete = False
+    show_change_link = True
+    verbose_name = 'Child Group'
+    verbose_name_plural = 'Child Groups'
+    
+    def participant_count(self, obj):
+        return obj.participations.count()
+    participant_count.short_description = 'Participants'
+    
+    def is_active(self, obj):
+        return obj.is_active
+    is_active.boolean = True
+    is_active.short_description = 'Active'
+    
+    def has_add_permission(self, request, obj=None):
+        return False
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
@@ -32,28 +53,35 @@ class CategoryAdmin(admin.ModelAdmin):
 class TournamentAdmin(admin.ModelAdmin):
     list_display = [
         'title', 
-        'category', 
+        'category',
+        'group_display',
         'start_time', 
         'end_time', 
         'participant_count',
         'is_active',
+        'is_repeating',
         'view_participants',
         'featured',
     ]
-    actions = ['select_finalists', 'close_tournament']
-    inlines = [ParticipationInline]
-    list_filter = ['category', 'is_final_tournament', 'featured', ('start_time', admin.DateFieldListFilter)]
-    search_fields = ['title', 'description']
-    readonly_fields = ['created_at', 'updated_at']
+    actions = ['select_finalists', 'close_tournament', 'create_new_group']
+    inlines = [ParticipationInline, ChildTournamentInline]
+    list_filter = ['category', 'is_final_tournament', 'featured', 'is_repeating', ('start_time', admin.DateFieldListFilter)]
+    search_fields = ['title', 'description', 'group_name']
+    readonly_fields = ['created_at', 'updated_at', 'active_group_count']
     fieldsets = [
         (None, {
-            'fields': ['title', 'description','rules', 'prizes', 'image', 'featured']
+            'fields': ['title', 'description', 'rules', 'prizes', 'image', 'featured']
         }),
         ('Category & Settings', {
-            'fields': ['category', 'participant_limit', 'finalists_count', 'is_final_tournament']
+            'fields': ['category', 'participant_limit', 'finalists_count', 'entry_fee', 'is_final_tournament']
         }),
         ('Timing', {
             'fields': ['start_time', 'end_time']
+        }),
+        ('Repeating Tournament Settings', {
+            'fields': ['is_repeating', 'parent_tournament', 'group_name', 'active_group_count'],
+            'classes': ['collapse'],
+            'description': 'Configure settings for repeating tournaments that automatically create new groups when filled'
         }),
         ('Metadata', {
             'fields': ['created_by', 'created_at', 'updated_at'],
@@ -61,13 +89,30 @@ class TournamentAdmin(admin.ModelAdmin):
         })
     ]
 
+    def get_queryset(self, request):
+        # Add a note to parent tournaments showing how many groups they have
+        queryset = super().get_queryset(request)
+        queryset = queryset.select_related('category', 'parent_tournament')
+        return queryset
+
+    def group_display(self, obj):
+        if obj.group_name:
+            return f"Group {obj.group_name}"
+        elif obj.is_repeating and obj.active_group_count > 0:
+            return f"Parent ({obj.active_group_count} groups)"
+        return "-"
+    group_display.short_description = 'Group'
+
     def participant_count(self, obj):
         count = obj.participations.count()
+        limit = f"/{obj.participant_limit}" if obj.participant_limit else ""
+        
         return format_html(
-            '<a href="{}?tournament__id__exact={}">{} participants</a>',
+            '<a href="{}?tournament__id__exact={}">{}{} participants</a>',
             reverse('admin:tournament_participation_changelist'),
             obj.id,
-            count
+            count,
+            limit
         )
     participant_count.short_description = 'Participants'
 
@@ -84,7 +129,6 @@ class TournamentAdmin(admin.ModelAdmin):
         return obj.is_active
     is_active.boolean = True
     is_active.short_description = 'Active'
-
 
     def select_finalists(self, request, queryset):
         for tournament in queryset:
@@ -106,7 +150,21 @@ class TournamentAdmin(admin.ModelAdmin):
         queryset.update(end_time=timezone.now())
         self.message_user(request, f"Closed {queryset.count()} tournaments")
     close_tournament.short_description = "Close selected tournaments"
-
+    
+    def create_new_group(self, request, queryset):
+        count = 0
+        for tournament in queryset:
+            if tournament.is_repeating and not tournament.parent_tournament:
+                # Only parent tournaments can create new groups
+                new_group = tournament.create_new_group()
+                if new_group:
+                    count += 1
+                    
+        if count > 0:
+            self.message_user(request, f"Created {count} new tournament groups")
+        else:
+            self.message_user(request, "No new groups were created. Check that selected tournaments are repeating parent tournaments.")
+    create_new_group.short_description = "Create new group for selected repeating tournaments"
 
 @admin.register(VideoSubmission)
 class VideoSubmissionAdmin(admin.ModelAdmin):
@@ -138,6 +196,16 @@ class VideoSubmissionAdmin(admin.ModelAdmin):
         return obj.created_at.strftime('%Y-%m-%d %H:%M')
     upload_date.short_description = 'Uploaded'
 
+    def mark_as_processed(self, request, queryset):
+        queryset.update(processed=True)
+        self.message_user(request, f"Marked {queryset.count()} videos as processed")
+    mark_as_processed.short_description = "Mark selected videos as processed"
+
+    def mark_as_unprocessed(self, request, queryset):
+        queryset.update(processed=False)
+        self.message_user(request, f"Marked {queryset.count()} videos as unprocessed")
+    mark_as_unprocessed.short_description = "Mark selected videos as unprocessed"
+
 @admin.register(Participation)
 class ParticipationAdmin(admin.ModelAdmin):
     list_display = [
@@ -155,16 +223,6 @@ class ParticipationAdmin(admin.ModelAdmin):
     def video_title(self, obj):
         return obj.video_submission.title
     video_title.short_description = 'Video'
-
-    def mark_as_processed(self, request, queryset):
-        queryset.update(processed=True)
-        self.message_user(request, f"Marked {queryset.count()} videos as processed")
-    mark_as_processed.short_description = "Mark selected videos as processed"
-
-    def mark_as_unprocessed(self, request, queryset):
-        queryset.update(processed=False)
-        self.message_user(request, f"Marked {queryset.count()} videos as unprocessed")
-    mark_as_unprocessed.short_description = "Mark selected videos as unprocessed"
 
 @admin.register(Vote)
 class VoteAdmin(admin.ModelAdmin):
@@ -205,4 +263,3 @@ class VideoReportAdmin(admin.ModelAdmin):
 admin.site.site_header = 'Tournament Management'
 admin.site.site_title = 'Tournament Admin'
 admin.site.index_title = 'Tournament Administration'
-

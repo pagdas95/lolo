@@ -224,26 +224,63 @@ class TournamentViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        if tournament.participant_limit and \
-           Participation.objects.filter(tournament=tournament).count() >= tournament.participant_limit:
-            return Response(
-                {"error": "Tournament has reached maximum participants"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        # Check if tournament is full - reject if it's not a repeating tournament
+        if tournament.participant_limit:
+            current_participants = Participation.objects.filter(tournament=tournament).count()
+            
+            if current_participants >= tournament.participant_limit:
+                if not tournament.is_repeating:
+                    return Response(
+                        {"error": "Tournament has reached maximum participants"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                else:
+                    # If it's repeating but full, reject with a message to try the newest group
+                    parent = tournament.parent_tournament or tournament
+                    newest_group = parent.child_tournaments.order_by('-created_at').first()
+                    
+                    if newest_group and newest_group.id != tournament.id:
+                        return Response({
+                            "error": "This group is full. Please join the newest group.",
+                            "newest_group": {
+                                "id": newest_group.id,
+                                "title": newest_group.title,
+                                "group": newest_group.group_name
+                            }
+                        }, status=status.HTTP_400_BAD_REQUEST)
+                        
+                    return Response(
+                        {"error": "Tournament has reached maximum participants and no new groups are available"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
 
         try:
             with transaction.atomic():
                 video_serializer = VideoSubmissionSerializer(data=request.data)
                 if video_serializer.is_valid():
                     video = video_serializer.save(user=user)
+                    
+                    # Create participation
                     participation = Participation.objects.create(
                         user=user,
                         tournament=tournament,
                         video_submission=video
                     )
+                    
+                    # Deduct tickets
                     user.tickets -= tournament.entry_fee
                     user.save()
-
+                    
+                    # Check if this participation filled the tournament and it's repeating
+                    if tournament.is_repeating and tournament.participant_limit:
+                        # Refresh participant count from database to ensure accuracy
+                        current_count = Participation.objects.filter(tournament=tournament).count()
+                        
+                        if current_count >= tournament.participant_limit:
+                            # This was the last spot! Create a new group automatically
+                            parent = tournament.parent_tournament or tournament
+                            parent.create_new_group()
+                    
                     return Response(
                         ParticipationSerializer(participation).data,
                         status=status.HTTP_201_CREATED
