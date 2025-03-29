@@ -106,7 +106,7 @@ class TournamentFilter(django_filters.FilterSet):
         elif value == 'oldest':
             return queryset.order_by('created_at')
         elif value == 'featured':
-            return queryset.order_by('-featured', '-created_at')
+            return queryset.order_by('-featured', '-start_time')
         
         return queryset
     
@@ -470,54 +470,141 @@ class TournamentViewSet(viewsets.ModelViewSet):
     def closing_soon(self, request):
         """
         Get 8 tournaments prioritized as follows:
-        1. Active tournaments closing soon
-        2. Recently ended tournaments
-        3. Any remaining tournaments if needed to fill up to 8
+        1. Active tournaments with participant limits that have 0 participants
+        2. Active tournaments that are nearly full (90%+ capacity)
+        3. Active tournaments closing soon by end_time
+        4. Recently ended tournaments
+        5. Any remaining tournaments if needed to fill up to 8
         """
         now = timezone.now()
         limit = 8
+        result_tournaments = []
 
-        # 1. First, get active tournaments closing soon
-        active_tournaments = list(Tournament.objects.filter(
+        # 1. First, get active tournaments with participant limits that have 0 participants
+        empty_active_tournaments = []
+        for tournament in Tournament.objects.filter(
             start_time__lte=now,
-            end_time__gt=now
-        ).order_by('end_time')[:limit])
-
-        slots_remaining = limit - len(active_tournaments)
-
+            participant_limit__isnull=False
+        ).exclude(
+            end_time__lte=now  # Exclude already ended tournaments
+        ):
+            participant_count = tournament.participations.count()
+            if participant_count == 0:
+                empty_active_tournaments.append(tournament)
+        
+        # Prioritize featured empty tournaments, then by newest start time
+        empty_active_tournaments.sort(key=lambda t: (-t.featured, -t.start_time.timestamp()))
+        
+        # Add empty tournaments to results
+        result_tournaments.extend(empty_active_tournaments[:limit])
+        slots_remaining = limit - len(result_tournaments)
+        
+        # 2. Get nearly-full active tournaments
         if slots_remaining > 0:
-            # 2. Get recently ended tournaments
+            nearly_full_tournaments = []
+            active_tournaments_with_limits = Tournament.objects.filter(
+                start_time__lte=now,
+                participant_limit__isnull=False
+            ).exclude(
+                id__in=[t.id for t in result_tournaments]
+            ).exclude(
+                end_time__lte=now  # Exclude already ended tournaments
+            )
+            
+            for tournament in active_tournaments_with_limits:
+                participant_count = tournament.participations.count()
+                if tournament.participant_limit and participant_count > 0:
+                    # Calculate how full the tournament is (as a percentage)
+                    capacity_percentage = (participant_count / tournament.participant_limit) * 100
+                    
+                    # If it's over 80% full, consider it "closing soon"
+                    if capacity_percentage >= 80:
+                        nearly_full_tournaments.append({
+                            'tournament': tournament,
+                            'capacity_percentage': capacity_percentage,
+                            'remaining_spots': tournament.participant_limit - participant_count
+                        })
+            
+            # Sort by remaining spots (fewest first)
+            nearly_full_tournaments.sort(key=lambda x: x['remaining_spots'])
+            
+            # Take only what we need to reach our limit
+            for item in nearly_full_tournaments[:slots_remaining]:
+                result_tournaments.append(item['tournament'])
+            
+            slots_remaining = limit - len(result_tournaments)
+        
+        # 3. Get active tournaments closing soon by end_time
+        if slots_remaining > 0:
+            # Look for tournaments ending within the next 48 hours
+            end_threshold = now + timezone.timedelta(hours=48)
+            closing_soon = list(Tournament.objects.filter(
+                start_time__lte=now,
+                end_time__gt=now,
+                end_time__lte=end_threshold
+            ).exclude(
+                id__in=[t.id for t in result_tournaments]
+            ).order_by('end_time')[:slots_remaining])
+            
+            result_tournaments.extend(closing_soon)
+            slots_remaining = limit - len(result_tournaments)
+
+        # 4. If still needed, get any active tournaments
+        if slots_remaining > 0:
+            any_active = list(Tournament.objects.filter(
+                start_time__lte=now
+            ).exclude(
+                end_time__lte=now  # Exclude ended tournaments
+            ).exclude(
+                id__in=[t.id for t in result_tournaments]
+            ).order_by('-start_time')[:slots_remaining])
+            
+            result_tournaments.extend(any_active)
+            slots_remaining = limit - len(result_tournaments)
+
+        # 5. If still needed, get recently ended tournaments
+        if slots_remaining > 0:
             ended_tournaments = list(Tournament.objects.filter(
                 end_time__lte=now
+            ).exclude(
+                id__in=[t.id for t in result_tournaments]
             ).order_by('-end_time')[:slots_remaining])
             
-            active_tournaments.extend(ended_tournaments)
-            slots_remaining = limit - len(active_tournaments)
+            result_tournaments.extend(ended_tournaments)
+            slots_remaining = limit - len(result_tournaments)
 
-            # 3. If still needed, get upcoming tournaments
-            if slots_remaining > 0:
-                upcoming_tournaments = list(Tournament.objects.filter(
-                    start_time__gt=now
-                ).exclude(
-                    id__in=[t.id for t in active_tournaments]
-                ).order_by('start_time')[:slots_remaining])
-                
-                active_tournaments.extend(upcoming_tournaments)
-
+        # Build response data
         tournaments_data = []
-        for tournament in active_tournaments:
+        for tournament in result_tournaments:
             data = TournamentListSerializer(tournament, context={'request': request}).data
             
             # Add status information
             if tournament.start_time > now:
                 data['status'] = 'upcoming'
                 data['time_info'] = self._get_time_until_start(tournament.start_time, now)
-            elif tournament.end_time > now:
+            elif tournament.end_time and tournament.end_time > now:
                 data['status'] = 'active'
                 data['time_info'] = self._get_time_until_end(tournament.end_time, now)
+            elif not tournament.end_time and tournament.is_active:
+                # For repeating/unlimited tournaments without end times
+                data['status'] = 'active'
+                
+                # If it has a participant limit, show remaining spots
+                if tournament.participant_limit:
+                    participant_count = tournament.participations.count()
+                    remaining = tournament.participant_limit - participant_count
+                    if remaining == tournament.participant_limit:  # No participants yet
+                        data['time_info'] = f"Be the first to join! {remaining} spots available."
+                    else:
+                        data['time_info'] = f"Only {remaining} spots left"
+                else:
+                    data['time_info'] = "Active tournament"
             else:
                 data['status'] = 'ended'
-                data['time_info'] = self._get_time_since_end(tournament.end_time, now)
+                if tournament.end_time:
+                    data['time_info'] = self._get_time_since_end(tournament.end_time, now)
+                else:
+                    data['time_info'] = "Tournament ended"
             
             # Add participation info
             data['participation_info'] = self._get_participation_info(tournament)
@@ -525,7 +612,6 @@ class TournamentViewSet(viewsets.ModelViewSet):
             tournaments_data.append(data)
 
         return Response(tournaments_data)
-
     def _get_time_until_start(self, start_time, now):
         """Calculate time until tournament starts"""
         time_left = start_time - now
