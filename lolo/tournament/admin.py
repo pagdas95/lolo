@@ -62,6 +62,7 @@ class TournamentAdmin(admin.ModelAdmin):
         'is_repeating',
         'view_participants',
         'featured',
+        'is_showcase',
     ]
     actions = ['select_finalists', 'close_tournament', 'create_new_group']
     inlines = [ParticipationInline, ChildTournamentInline]
@@ -70,7 +71,7 @@ class TournamentAdmin(admin.ModelAdmin):
     readonly_fields = ['created_at', 'updated_at', 'active_group_count']
     fieldsets = [
         (None, {
-            'fields': ['title', 'description', 'rules', 'prizes', 'image', 'featured']
+            'fields': ['title', 'description', 'rules', 'prizes', 'image', 'featured','is_showcase']
         }),
         ('Category & Settings', {
             'fields': ['category', 'participant_limit', 'finalists_count', 'entry_fee', 'is_final_tournament']

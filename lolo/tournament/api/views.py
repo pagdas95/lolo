@@ -974,3 +974,56 @@ class UserTournamentProfileViewSet(viewsets.GenericViewSet):
                 {"error": "User not found"}, 
                 status=status.HTTP_404_NOT_FOUND
             )
+        
+# Add this to lolo/tournament/api/views.py
+class PublicTournamentViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet that doesn't require authentication for public tournament data"""
+    authentication_classes = []  # No authentication required
+    permission_classes = []      # No permissions required
+    
+    def get_queryset(self):
+        # This method is called for all actions - always filters for showcase tournaments
+        return Tournament.objects.none()  # Default empty queryset
+    
+    @action(detail=False, methods=['get'])
+    def showcase(self, request):
+        """
+        Public API endpoint for showcasing tournaments
+        """
+        now = timezone.now()
+        
+        # Get active, showcase tournaments
+        showcase_tournaments = Tournament.objects.filter(
+            is_showcase=True,
+            start_time__lte=now
+        ).exclude(
+            end_time__lte=now  # Exclude ended tournaments
+        ).order_by('-featured', '-start_time')[:10]
+        
+        # Filter for truly active tournaments
+        active_showcase_tournaments = []
+        for tournament in showcase_tournaments:
+            if tournament.is_active:  # Use the is_active property to check
+                active_showcase_tournaments.append(tournament)
+        
+        # Custom limited serialization for public view
+        result = []
+        for tournament in active_showcase_tournaments:
+            participant_count = tournament.participations.count()
+            
+            result.append({
+                'id': tournament.id,
+                'title': tournament.title,
+                'description': tournament.description,
+                'rules': tournament.rules,
+                'prizes': tournament.prizes,
+                'image': request.build_absolute_uri(tournament.image.url) if tournament.image else None,
+                'category': tournament.category.name,
+                'participant_count': participant_count,
+                'participant_limit': tournament.participant_limit,
+                'is_active': True,  # We've already confirmed these are active
+                'featured': tournament.featured,
+                'start_time': tournament.start_time
+            })
+        
+        return Response(result)

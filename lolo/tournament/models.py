@@ -68,6 +68,11 @@ class Tournament(models.Model):
         blank=True,
         help_text="Maximum number of participants (null for unlimited)"
     )
+
+    is_showcase = models.BooleanField(
+    default=False,
+    help_text="Show this tournament in public showcase carousels"
+    )
     # New fields for repeating tournaments
     is_repeating = models.BooleanField(
         default=False,
@@ -157,6 +162,7 @@ class Tournament(models.Model):
                 image=self.image,
                 category=self.category,
                 featured=self.featured,
+                is_showcase=self.is_showcase,
                 start_time=current_time,
                 end_time=self.end_time,
                 participant_limit=self.participant_limit,
