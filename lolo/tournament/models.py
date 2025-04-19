@@ -313,3 +313,41 @@ class VideoReport(models.Model):
 
     def __str__(self):
         return f"Report by {self.reporter.username} on {self.video.title}"
+    
+class Sponsor(models.Model):
+    """
+    Sponsors for tournaments or the platform
+    """
+    name = models.CharField(
+        max_length=200,
+        help_text="Sponsor name"
+    )
+    description = models.TextField(
+        blank=True,
+        help_text="About the sponsor"
+    )
+    logo = models.ImageField(
+        upload_to='sponsor_logos/',
+        help_text="Sponsor logo"
+    )
+    website_url = models.URLField(
+        blank=True,
+        help_text="Sponsor's website URL"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Indicates if sponsor is currently active"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    # Optional relationship to tournaments (if sponsors are tied to specific tournaments)
+    tournaments = models.ManyToManyField(
+        Tournament,
+        related_name='sponsors',
+        blank=True,
+        help_text="Tournaments sponsored by this sponsor"
+    )
+    
+    def __str__(self):
+        return self.name

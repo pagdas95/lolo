@@ -2,7 +2,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
-from .models import Category, Tournament, VideoSubmission, Participation, Vote, VideoReport
+from .models import Category, Tournament, VideoSubmission, Participation, Vote, VideoReport, Sponsor
 
 class ParticipationInline(admin.TabularInline):
     model = Participation
@@ -259,6 +259,17 @@ class VideoReportAdmin(admin.ModelAdmin):
         if obj:  # Editing existing object
             return ['video', 'reporter', 'reason', 'created_at']
         return ['created_at']
+    
+@admin.register(Sponsor)
+class SponsorAdmin(admin.ModelAdmin):
+    list_display = ['name', 'website_url', 'is_active', 'tournament_count', 'created_at']
+    list_filter = ['is_active', 'created_at']
+    search_fields = ['name', 'description']
+    filter_horizontal = ['tournaments']
+    
+    def tournament_count(self, obj):
+        return obj.tournaments.count()
+    tournament_count.short_description = 'Tournaments'
 
 # Optional: Customize admin site header and title
 admin.site.site_header = 'Tournament Management'

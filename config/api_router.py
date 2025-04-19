@@ -10,6 +10,7 @@ from lolo.tournament.api.views import (
     ParticipationViewSet,
     UserTournamentProfileViewSet,
     PublicTournamentViewSet,
+    SponsorViewSet
 
 )
 
@@ -24,6 +25,7 @@ router.register("tournaments", TournamentViewSet)
 router.register("videos", VideoSubmissionViewSet)
 router.register('profiles', UserTournamentProfileViewSet, basename='user-profile')
 router.register(r'public', PublicTournamentViewSet, basename='public-tournaments')
+router.register(r'sponsors', SponsorViewSet)
 
 
 app_name = "api"

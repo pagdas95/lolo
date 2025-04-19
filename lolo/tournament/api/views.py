@@ -4,7 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db import transaction
 from django.utils import timezone
-from ..models import Category, Tournament, VideoSubmission, Participation, Vote, VideoReport
+from ..models import Category, Tournament, VideoSubmission, Participation, Vote, VideoReport, Sponsor
 from .serializers import (
     CategorySerializer,
     TournamentListSerializer,
@@ -12,7 +12,9 @@ from .serializers import (
     VideoSubmissionSerializer,
     ParticipationSerializer,
     VoteSerializer,
-    VideoReportSerializer
+    VideoReportSerializer,
+    SponsorSerializer,
+    SponsorDetailSerializer
 )
 from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly
 from .pagination import CustomPagination, VideosPagination
@@ -1024,6 +1026,47 @@ class PublicTournamentViewSet(viewsets.ReadOnlyModelViewSet):
                 'is_active': True,  # We've already confirmed these are active
                 'featured': tournament.featured,
                 'start_time': tournament.start_time
+            })
+        
+        return Response(result)
+    
+class SponsorViewSet(viewsets.ModelViewSet):
+    queryset = Sponsor.objects.all()
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [
+        django_filters.DjangoFilterBackend,
+        filters.SearchFilter
+    ]
+    search_fields = ['name', 'description']
+    
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return SponsorDetailSerializer
+        return SponsorSerializer
+    
+    def get_permissions(self):
+        """Set permissions based on action"""
+        if self.action == 'public':
+            return []  # No permissions required for public action
+        elif self.action in ['create', 'update', 'partial_update', 'destroy']:
+            permission_classes = [permissions.IsAdminUser]
+        else:
+            permission_classes = [permissions.IsAuthenticated]
+        return [permission() for permission in permission_classes]
+    
+    @action(detail=False, methods=['get'])
+    def public(self, request):
+        """Public API endpoint for active sponsors"""
+        sponsors = Sponsor.objects.filter(is_active=True)
+        
+        result = []
+        for sponsor in sponsors:
+            result.append({
+                'id': sponsor.id,
+                'name': sponsor.name,
+                'description': sponsor.description,
+                'logo': request.build_absolute_uri(sponsor.logo.url) if sponsor.logo else None,
+                'website_url': sponsor.website_url
             })
         
         return Response(result)

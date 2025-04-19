@@ -31,7 +31,7 @@ certificatesResolvers:
 http:
   routers:
     web-secure-router:
-      rule: 'Host(`prod.lololympics.com`) || Host(`www.prod.lololympics.com`)'
+      rule: 'Host(`lololympics.com`) || Host(`www.lololympics.com`)'
       entryPoints:
         - web-secure
       middlewares:
@@ -42,7 +42,7 @@ http:
         certResolver: letsencrypt
 
     flower-secure-router:
-      rule: 'Host(`prod.lololympics.com`)'
+      rule: 'Host(`lololympics.com`)'
       entryPoints:
         - flower
       service: flower

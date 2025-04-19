@@ -1,6 +1,6 @@
 # lolo/tournament/api/serializers.py
 from rest_framework import serializers
-from ..models import Category, Tournament, VideoSubmission, Participation, Vote, VideoReport
+from ..models import Category, Tournament, VideoSubmission, Participation, Vote, VideoReport, Sponsor
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -188,3 +188,35 @@ class VideoReportSerializer(serializers.ModelSerializer):
     class Meta:
         model = VideoReport
         fields = ['reason', 'details']
+
+class SponsorSerializer(serializers.ModelSerializer):
+    tournament_count = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Sponsor
+        fields = [
+            'id', 'name', 'description', 'logo', 'website_url', 
+            'is_active', 'tournament_count', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['created_at', 'updated_at']
+    
+    def get_tournament_count(self, obj):
+        return obj.tournaments.count()
+
+class SponsorDetailSerializer(serializers.ModelSerializer):
+    tournaments = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Sponsor
+        fields = [
+            'id', 'name', 'description', 'logo', 'website_url', 
+            'is_active', 'tournaments', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['created_at', 'updated_at']
+    
+    def get_tournaments(self, obj):
+        return [{
+            'id': t.id,
+            'title': t.title,
+            'image': self.context['request'].build_absolute_uri(t.image.url) if t.image else None
+        } for t in obj.tournaments.all()]
