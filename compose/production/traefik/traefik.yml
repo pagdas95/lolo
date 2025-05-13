@@ -71,8 +71,7 @@ http:
 
   services:
     django:
-      loadBalancer:
-        serversTransport: default        # <- uses the serversTransport above     
+      loadBalancer:   
         servers:
           - url: http://django:5000
 
