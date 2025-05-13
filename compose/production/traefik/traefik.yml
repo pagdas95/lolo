@@ -14,17 +14,21 @@ entryPoints:
   web-secure:
     # https
     address: ':443'
-
-    transport:
-      respondingTimeouts:
-        readTimeout: 600s    # time to read the request body
-        writeTimeout: 600s    # time to send the response back
-      forwardingTimeouts:     # time to talk to Gunicorn
-        dialTimeout: 600s
-        responseHeaderTimeout: 600s
+    transport:                       # <── you already had 'address'
+      respondingTimeouts:            #     just add this sub-section
+        readTimeout:  600s           # 10 min to read the upload
+        writeTimeout: 600s           # 10 min to write the response
 
   flower:
     address: ':5555'
+
+##############################################################################
+# 2)  Increase the time Traefik waits for a *response* from Gunicorn
+##############################################################################
+serversTransport:                    # <──- root-level, singular
+  forwardingTimeouts:
+    dialTimeout:            600s     # connect to backend
+    responseHeaderTimeout:  600s     # wait for headers after the upload
 
 certificatesResolvers:
   letsencrypt:
@@ -35,11 +39,6 @@ certificatesResolvers:
       # https://doc.traefik.io/traefik/https/acme/#httpchallenge
       httpChallenge:
         entryPoint: web
-
-serversTransport:
-  forwardingTimeouts:
-    dialTimeout: 600s
-    responseHeaderTimeout: 600s
 
 http:
   routers:
@@ -73,6 +72,7 @@ http:
   services:
     django:
       loadBalancer:
+        serversTransport: default        # <- uses the serversTransport above     
         servers:
           - url: http://django:5000
 
