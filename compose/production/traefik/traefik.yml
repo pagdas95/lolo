@@ -15,6 +15,14 @@ entryPoints:
     # https
     address: ':443'
 
+    transport:
+      respondingTimeouts:
+        readTimeout: 600s    # time to read the request body
+        writeTimeout: 600s    # time to send the response back
+      forwardingTimeouts:     # time to talk to Gunicorn
+        dialTimeout: 600s
+        responseHeaderTimeout: 600s
+
   flower:
     address: ':5555'
 
@@ -27,6 +35,11 @@ certificatesResolvers:
       # https://doc.traefik.io/traefik/https/acme/#httpchallenge
       httpChallenge:
         entryPoint: web
+
+serversTransport:
+  forwardingTimeouts:
+    dialTimeout: 600s
+    responseHeaderTimeout: 600s
 
 http:
   routers:
