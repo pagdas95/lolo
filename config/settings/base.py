@@ -388,19 +388,6 @@ REST_AUTH = {
     'PASSWORD_RESET_USE_SITES_DOMAIN': True,
 }
 
-# Add these settings for mobile upload support
-SESSION_COOKIE_AGE = 3600  # 1 hour
-SESSION_EXPIRE_AT_BROWSER_CLOSE = False
-
-# For large uploads
-DATA_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100MB
-FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100MB
-DATA_UPLOAD_MAX_NUMBER_FIELDS = 1000
-DATA_UPLOAD_MAX_NUMBER_FILES = 100
-
-# Force new connections for uploads (important for mobile)
-DATABASES["default"]["CONN_MAX_AGE"] = 0
-
 # django-cors-headers - https://github.com/adamchainz/django-cors-headers#setup
 CORS_URLS_REGEX = r"^/api/.*$"
 # ALLOWED_HOSTS should be just hostnames, not full URLs
@@ -436,7 +423,6 @@ CORS_ALLOW_HEADERS = [
     'x-csrftoken',
     'content-length',  # Add this
     'x-requested-with',  # Add this
-    'x-upload-progress',
 ]
 
 # Keep these settings

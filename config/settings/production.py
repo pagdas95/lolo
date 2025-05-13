@@ -91,19 +91,6 @@ AWS_S3_MAX_MEMORY_SIZE = env.int(
     "DJANGO_AWS_S3_MAX_MEMORY_SIZE",
     default=100_000_000,  # 100MB
 )
-# S3 Upload settings for mobile connections
-AWS_S3_FILE_OVERWRITE = False
-AWS_S3_MAX_UPLOAD_PARTS = 1000
-AWS_S3_MULTIPART_CHUNKSIZE = 104857600  # 100MB chunks
-AWS_S3_MULTIPART_THRESHOLD = 104857600  # 100MB threshold
-AWS_S3_TRANSFER_CONFIG = {
-    "multipart_threshold": 1024 * 1024 * 100,  # 100MB
-    "max_concurrency": 5,
-    "multipart_chunksize": 1024 * 1024 * 100,  # 100MB
-    "num_download_attempts": 10,
-    "max_io_queue": 100,
-    "io_chunksize": 1024 * 1024  # 1MB
-}
 # https://django-storages.readthedocs.io/en/latest/backends/amazon-S3.html#settings
 AWS_S3_REGION_NAME = env("DJANGO_AWS_S3_REGION_NAME", default=None)
 # https://django-storages.readthedocs.io/en/latest/backends/amazon-S3.html#cloudfront
