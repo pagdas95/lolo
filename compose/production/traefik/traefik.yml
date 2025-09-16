@@ -16,8 +16,9 @@ entryPoints:
     address: ':443'
     transport:                       # <── you already had 'address'
       respondingTimeouts:            #     just add this sub-section
-        readTimeout:  600s           # 10 min to read the upload
-        writeTimeout: 600s           # 10 min to write the response
+        readTimeout:  3600s          # 30 min to read the upload                              
+        writeTimeout: 3600s          # 30 min to write the response
+        idleTimeout:  3600s      
 
   flower:
     address: ':5555'
